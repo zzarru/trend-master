@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from trend_pipeline import report_generator, storage
+from trend_pipeline.categories import CATEGORIES
 
 
 def _make_item(source_id, title, url, score):
@@ -105,7 +106,17 @@ def test_generate_report_shows_empty_state_for_categories_with_no_data():
 
     html_out = report_generator.generate_report(conn, datetime(2026, 9, 15, 12, 0, 0))
 
-    assert html_out.count("이번 주 트렌드 없음") == 7
+    assert html_out.count("이번 주 트렌드 없음") == len(CATEGORIES)
+
+
+def test_generate_report_renders_ai_it_category_tab():
+    conn = storage.init_db(":memory:")
+    _insert(conn, "v1", "신형 AI 코딩 에이전트 리뷰", "https://example.com/v1", 100, "2026-09-15 01:00:00", "AI/IT")
+
+    html_out = report_generator.generate_report(conn, datetime(2026, 9, 15, 12, 0, 0))
+
+    ai_section = html_out.split('id="cat-ai"')[1].split("</section>")[0]
+    assert "신형 AI 코딩 에이전트 리뷰" in ai_section
 
 
 def test_generate_report_renders_tabs_for_all_categories_with_counts():

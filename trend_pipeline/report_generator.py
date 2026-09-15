@@ -10,6 +10,7 @@ _TAB_IDS = {
     "뷰티/패션": "cat-beauty",
     "라이프스타일": "cat-life",
     "게임": "cat-game",
+    "AI/IT": "cat-ai",
     "스포츠": "cat-sports",
     "기타": "cat-etc",
 }
