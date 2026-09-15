@@ -1,10 +1,16 @@
 import json
 
-from trend_pipeline.categories import CATEGORIES, DEFAULT_CATEGORY
+from trend_pipeline.categories import CATEGORIES, CATEGORY_STYLE_GUIDE, DEFAULT_CATEGORY
 
-_PROMPT_TEMPLATE = """다음 유튜브 영상 정보를 보고, 마케팅 관점에서 아래 카테고리 중 하나로 분류하고 2~3문장으로 요약해줘.
+_STYLE_GUIDE_TEXT = "\n".join(f"- {cat}: {style}" for cat, style in CATEGORY_STYLE_GUIDE.items())
+
+_PROMPT_TEMPLATE = """다음 유튜브 영상 정보를 보고, 마케팅 관점에서 아래 카테고리 중 하나로 분류하고,
+분류한 카테고리에 맞는 문체로 2~3문장 요약을 작성해줘.
 
 카테고리 목록: {categories}
+
+카테고리별 문체 가이드:
+{style_guide}
 
 반드시 아래 JSON 형식으로만 응답해:
 {{"category": "...", "summary": "..."}}
@@ -19,6 +25,7 @@ def analyze_content(client, content_item: dict) -> dict:
     comments = content_item.get("top_comments") or []
     prompt = _PROMPT_TEMPLATE.format(
         categories=", ".join(CATEGORIES),
+        style_guide=_STYLE_GUIDE_TEXT,
         title=content_item.get("title", ""),
         body=content_item.get("body", "")[:2000],
         comments=" / ".join(comments[:5]) if comments else "(댓글 없음)",

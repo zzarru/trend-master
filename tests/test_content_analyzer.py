@@ -24,6 +24,17 @@ def test_analyze_content_parses_json_response():
     client.messages.create.assert_called_once()
 
 
+def test_analyze_content_includes_category_style_guide_in_prompt():
+    payload = json.dumps({"category": "음악", "summary": "요약"})
+    client = _make_client_returning(payload)
+
+    content_analyzer.analyze_content(client, {"title": "신곡 MV", "body": "some body"})
+
+    prompt = client.messages.create.call_args.kwargs["messages"][0]["content"]
+    assert "팬 계정(덕후) 말투" in prompt
+    assert "게임 스트리머/유튜버 말투" in prompt
+
+
 def test_analyze_content_includes_top_comments_in_prompt():
     payload = json.dumps({"category": "게임", "summary": "게임 플레이 클립입니다."})
     client = _make_client_returning(payload)
