@@ -1,0 +1,109 @@
+<title>트렌드위클리 아카이브</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Serif+KR:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --paper: #f2f0e9;
+    --ink: #1d1b17;
+    --ink-soft: #4a463f;
+    --ink-faint: #8a8477;
+    --rule: #cfc9ba;
+    --rule-strong: #1d1b17;
+    --accent: #8c2f27;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #17181a;
+      --ink: #eeece4;
+      --ink-soft: #bcb7a9;
+      --ink-faint: #726d61;
+      --rule: #3a3a37;
+      --rule-strong: #eeece4;
+      --accent: #d9695c;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #17181a;
+    --ink: #eeece4;
+    --ink-soft: #bcb7a9;
+    --ink-faint: #726d61;
+    --rule: #3a3a37;
+    --rule-strong: #eeece4;
+    --accent: #d9695c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Noto Serif KR", Georgia, serif;
+    margin: 0;
+    padding-inline: 20px;
+    padding-block: 36px 64px;
+  }
+
+  .sheet { max-width: 640px; margin-inline: auto; }
+
+  h1 {
+    font-family: "Nanum Myeongjo", "Noto Serif KR", serif;
+    font-weight: 800;
+    font-size: clamp(30px, 8vw, 40px);
+    border-bottom: 3px solid var(--rule-strong);
+    padding-bottom: 14px;
+    margin: 0 0 20px;
+  }
+
+  a.back-link {
+    display: inline-block;
+    margin-bottom: 18px;
+    color: var(--ink-faint);
+    font-family: "Noto Sans KR", sans-serif;
+    font-size: 12.5px;
+    text-decoration: none;
+  }
+
+  ol.issues { list-style: none; margin: 0; padding: 0; }
+
+  ol.issues li {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .issue-no {
+    font-family: "Nanum Myeongjo", serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .issue-link {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .empty-note {
+    font-family: "Noto Serif KR", serif;
+    font-style: italic;
+    color: var(--ink-faint);
+    font-size: 14px;
+  }
+</style>
+
+<div class="sheet">
+  <a class="back-link" href="../">← 최신 리포트로 돌아가기</a>
+  <h1>트렌드위클리 아카이브</h1>
+  <ol class="issues">
+    <li>
+      <span class="issue-no">1호</span>
+      <a class="issue-link" href="2026-09-15.html">2026-09-15</a>
+    </li>
+  </ol>
+</div>
