@@ -127,8 +127,6 @@
 
   .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-  .top-overall-section { margin-top: 22px; }
-
   section.category { margin-top: 30px; }
   section.category[hidden] { display: none; }
 
@@ -247,12 +245,24 @@
       <span class="tag">유튜브 인기 급상승 · KR</span>
     </div>
     <p class="subhead">
-      이번 주 한국 유튜브 인기 급상승 영상 중 전체 조회수 상위 10건과,
-      마케팅 관점 8개 카테고리별 조회수 상위 5건을 추렸습니다.
+      이번 주 한국 유튜브 인기 급상승 영상을 탭으로 살펴보세요 —
+      전체 조회수 TOP 10과, 마케팅 관점 8개 카테고리별 TOP 5.
     </p>
   </header>
 
-  <section class="top-overall-section" id="top-overall">
+  <nav class="tabs" role="tablist" aria-label="카테고리">
+    <button class="tab" role="tab" type="button" data-target="top-overall" aria-selected="true">전체<span class="n">10</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-ent" aria-selected="false">엔터테인먼트<span class="n">0</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-music" aria-selected="false">음악<span class="n">5</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-beauty" aria-selected="false">뷰티/패션<span class="n">0</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-life" aria-selected="false">라이프스타일<span class="n">0</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-game" aria-selected="false">게임<span class="n">5</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-ai" aria-selected="false">AI/IT<span class="n">0</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-sports" aria-selected="false">스포츠<span class="n">0</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-etc" aria-selected="false">기타<span class="n">0</span></button>
+  </nav>
+
+  <section class="category" id="top-overall">
     <div class="cat-head">
       <h2>전체 TOP 10</h2>
       <span class="count">TOP 10 · 10건</span>
@@ -341,18 +351,7 @@
     </ol>
   </section>
 
-  <nav class="tabs" role="tablist" aria-label="카테고리">
-    <button class="tab" role="tab" type="button" data-target="cat-ent" aria-selected="true">엔터테인먼트<span class="n">0</span></button>
-    <button class="tab" role="tab" type="button" data-target="cat-music" aria-selected="false">음악<span class="n">5</span></button>
-    <button class="tab" role="tab" type="button" data-target="cat-beauty" aria-selected="false">뷰티/패션<span class="n">0</span></button>
-    <button class="tab" role="tab" type="button" data-target="cat-life" aria-selected="false">라이프스타일<span class="n">0</span></button>
-    <button class="tab" role="tab" type="button" data-target="cat-game" aria-selected="false">게임<span class="n">5</span></button>
-    <button class="tab" role="tab" type="button" data-target="cat-ai" aria-selected="false">AI/IT<span class="n">0</span></button>
-    <button class="tab" role="tab" type="button" data-target="cat-sports" aria-selected="false">스포츠<span class="n">0</span></button>
-    <button class="tab" role="tab" type="button" data-target="cat-etc" aria-selected="false">기타<span class="n">0</span></button>
-  </nav>
-
-  <section class="category" id="cat-ent">
+  <section class="category" id="cat-ent" hidden>
     <div class="cat-head">
       <h2>엔터테인먼트</h2>
       <span class="count">TOP 5 · 0건</span>
@@ -500,7 +499,7 @@
 
   <footer>
     trend-master · run_pipeline.py 자동 발행<br>
-    생성 시각: 2026-09-15T15:54:47+09:00
+    생성 시각: 2026-09-15T15:59:45+09:00
   </footer>
 </div>
 
