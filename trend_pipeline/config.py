@@ -4,21 +4,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DEFAULT_SUBREDDITS = [
-    "marketing",
-    "socialmedia",
-    "DigitalMarketing",
-    "OutOfTheLoop",
-    "trends",
-]
+DEFAULT_REGION_CODE = "KR"
+DEFAULT_MAX_RESULTS = 25
 
-DEFAULT_RSS_FEEDS = [
-    "https://www.socialmediatoday.com/feeds/news/",
-    "https://blog.hubspot.com/marketing/rss.xml",
-    "https://www.thinkwithgoogle.com/feed/",
-]
-
-_REQUIRED_ENV_VARS = ["REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET", "ANTHROPIC_API_KEY"]
+_REQUIRED_ENV_VARS = ["YOUTUBE_API_KEY", "ANTHROPIC_API_KEY"]
 
 
 def load_config() -> dict:
@@ -27,11 +16,9 @@ def load_config() -> dict:
         raise ValueError(f"Missing required environment variables: {', '.join(missing)}")
 
     return {
-        "reddit_client_id": os.environ["REDDIT_CLIENT_ID"],
-        "reddit_client_secret": os.environ["REDDIT_CLIENT_SECRET"],
-        "reddit_user_agent": os.environ.get("REDDIT_USER_AGENT", "trend-pipeline-mvp/0.1"),
+        "youtube_api_key": os.environ["YOUTUBE_API_KEY"],
         "anthropic_api_key": os.environ["ANTHROPIC_API_KEY"],
-        "subreddits": DEFAULT_SUBREDDITS,
-        "rss_feeds": DEFAULT_RSS_FEEDS,
+        "region_code": os.environ.get("YOUTUBE_REGION_CODE", DEFAULT_REGION_CODE),
+        "max_results": int(os.environ.get("YOUTUBE_MAX_RESULTS", DEFAULT_MAX_RESULTS)),
         "db_path": os.environ.get("TREND_PIPELINE_DB_PATH", "trend_pipeline.db"),
     }
