@@ -44,9 +44,10 @@ def test_collect_reddit_posts_builds_items_and_filters_by_lookback():
     recent = _make_submission("p1", "Recent surging post", 200, 50, now.timestamp())
     old = _make_submission("p2", "Old post", 500, 100, (now - timedelta(days=5)).timestamp())
     baseline = _make_submission("p3", "Baseline post", 5, 1, now.timestamp())
+    baseline2 = _make_submission("p4", "Another baseline post", 6, 1, now.timestamp())
 
     mock_client = MagicMock()
-    mock_client.subreddit.return_value.new.return_value = [recent, old, baseline]
+    mock_client.subreddit.return_value.new.return_value = [recent, old, baseline, baseline2]
 
     result = reddit_collector.collect_reddit_posts(mock_client, ["marketing"], lookback_hours=24)
 

@@ -19,18 +19,9 @@ def filter_surging_posts(posts: list[dict], min_score: int = 5, surge_multiplier
 
     surging = []
     for subreddit_posts in by_subreddit.values():
-        for post in subreddit_posts:
-            if len(subreddit_posts) == 1:
-                # Only one post, check against min_score
-                if post["score"] >= min_score:
-                    surging.append(post)
-            else:
-                # Calculate average excluding this post
-                other_scores = [p["score"] for p in subreddit_posts if p is not post]
-                avg_score = sum(other_scores) / len(other_scores)
-                threshold = max(min_score, avg_score * surge_multiplier)
-                if post["score"] >= threshold:
-                    surging.append(post)
+        avg_score = sum(p["score"] for p in subreddit_posts) / len(subreddit_posts)
+        threshold = max(min_score, avg_score * surge_multiplier)
+        surging.extend(p for p in subreddit_posts if p["score"] >= threshold)
 
     return surging
 
