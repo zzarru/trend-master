@@ -11,4 +11,5 @@ def notify(webhook_url: str, report_url: str, post=requests.post) -> bool:
         response.raise_for_status()
         return True
     except Exception:
+        print("슬랙 알림 실패")
         return False

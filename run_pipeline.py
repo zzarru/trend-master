@@ -48,16 +48,23 @@ def run() -> dict:
         else:
             keywords_failed += 1
 
-    report_html = report_generator.generate_report(conn, datetime.now())
-    with open(cfg["report_path"], "w", encoding="utf-8") as f:
-        f.write(report_html)
-
     report_published = False
     slack_notified = False
-    if cfg["report_base_url"]:
-        report_published = git_publisher.publish([cfg["report_path"]], "chore: update trend report")
-        if report_published and cfg["slack_webhook_url"]:
-            slack_notified = slack_notifier.notify(cfg["slack_webhook_url"], cfg["report_base_url"])
+    try:
+        report_html = report_generator.generate_report(conn, datetime.now().astimezone())
+        with open(cfg["report_path"], "w", encoding="utf-8") as f:
+            f.write(report_html)
+
+        if cfg["report_base_url"]:
+            report_published = git_publisher.publish(
+                [cfg["report_path"]], "chore: update trend report"
+            )
+            if report_published and cfg["slack_webhook_url"]:
+                slack_notified = slack_notifier.notify(
+                    cfg["slack_webhook_url"], cfg["report_base_url"]
+                )
+    except Exception as exc:
+        print(f"리포트 생성/배포 실패: {exc}")
 
     summary = {
         "youtube_collected": len(youtube_items),

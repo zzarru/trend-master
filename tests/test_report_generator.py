@@ -63,3 +63,42 @@ def test_generate_report_shows_empty_state_when_no_data():
 
     assert "오늘 수집된 트렌드가 없습니다." in html
     assert "이번 주 수집된 트렌드가 없습니다." in html
+
+
+def test_generate_report_uses_real_utc_collected_at_default_for_today_section():
+    # Regression test for the UTC/local timezone bug (Critical 1): collected_at
+    # is populated by SQLite's CURRENT_TIMESTAMP (UTC), left untouched here, and
+    # `now` is a real local datetime with tzinfo attached (mirrors run_pipeline.py's
+    # `datetime.now().astimezone()` call). Before the fix, generate_report compared
+    # this UTC-stored timestamp against a boundary computed from local time, which
+    # could put the row outside "today" depending on the local UTC offset.
+    conn = storage.init_db(":memory:")
+    content_id = storage.save_content(
+        conn,
+        _make_item("v-real-now", "실시간 영상", "https://example.com/v-real-now", 42),
+    )
+    storage.save_keywords(conn, content_id, ["realtime"], "ctx")
+
+    html = report_generator.generate_report(conn, datetime.now().astimezone())
+
+    today_section = html.split("이번 주 트렌드 키워드")[0]
+    assert "realtime" in today_section
+    assert "오늘 수집된 트렌드가 없습니다." not in today_section
+
+
+def test_generate_report_escapes_html_in_title_keyword_and_url():
+    conn = storage.init_db(":memory:")
+    _insert(
+        conn,
+        "v-xss",
+        "<script>alert(1)</script>",
+        "https://example.com/v-xss",
+        1,
+        "2026-09-15 01:00:00",
+        ["<b>keyword</b>"],
+    )
+
+    html = report_generator.generate_report(conn, datetime(2026, 9, 15, 12, 0, 0))
+
+    assert "<script>alert(1)</script>" not in html
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html

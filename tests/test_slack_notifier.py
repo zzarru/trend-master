@@ -27,3 +27,18 @@ def test_notify_returns_false_when_request_fails():
     )
 
     assert result is False
+
+
+def test_notify_prints_generic_failure_message_without_leaking_webhook_url(capsys):
+    def failing_post(*args, **kwargs):
+        raise RuntimeError("connection error to https://hooks.slack.com/services/SECRET_TOKEN")
+
+    slack_notifier.notify(
+        "https://hooks.slack.com/services/SECRET_TOKEN",
+        "https://user.github.io/repo/",
+        post=failing_post,
+    )
+
+    captured = capsys.readouterr()
+    assert "SECRET_TOKEN" not in captured.out
+    assert "슬랙 알림 실패" in captured.out

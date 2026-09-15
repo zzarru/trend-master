@@ -181,3 +181,38 @@ def test_run_skips_publish_and_slack_when_report_base_url_missing(
     assert summary["slack_notified"] is False
     mock_publish.assert_not_called()
     mock_notify.assert_not_called()
+
+
+@patch("run_pipeline.slack_notifier.notify")
+@patch("run_pipeline.git_publisher.publish")
+@patch("run_pipeline.report_generator.generate_report")
+@patch("run_pipeline.keyword_extractor.extract_keywords_batch")
+@patch("run_pipeline.youtube_collector.collect_youtube_trending")
+@patch("run_pipeline.config.load_config")
+def test_run_continues_when_report_generation_fails(
+    mock_load_config, mock_collect_youtube, mock_extract_batch,
+    mock_generate_report, mock_publish, mock_notify, tmp_path,
+):
+    report_path = tmp_path / "index.html"
+    mock_load_config.return_value = {
+        "youtube_api_key": "yt-key",
+        "anthropic_api_key": "key",
+        "region_code": "KR",
+        "max_results": 25,
+        "db_path": ":memory:",
+        "report_path": str(report_path),
+        "report_base_url": "https://user.github.io/repo/",
+        "slack_webhook_url": "https://hooks.slack.com/services/x",
+    }
+    mock_collect_youtube.return_value = []
+    mock_extract_batch.return_value = []
+    mock_generate_report.side_effect = RuntimeError("report generation exploded")
+
+    with patch("run_pipeline.Anthropic") as mock_anthropic_cls:
+        mock_anthropic_cls.return_value = MagicMock()
+        summary = run_pipeline.run()
+
+    assert summary["report_published"] is False
+    assert summary["slack_notified"] is False
+    mock_publish.assert_not_called()
+    mock_notify.assert_not_called()
