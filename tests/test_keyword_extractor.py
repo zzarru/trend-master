@@ -24,6 +24,16 @@ def test_extract_keywords_parses_json_response():
     client.messages.create.assert_called_once()
 
 
+def test_extract_keywords_parses_json_wrapped_in_markdown_fence():
+    payload = json.dumps({"keywords": ["ai", "marketing", "shorts"], "usage_context": "viral marketing thread"})
+    fenced = f"```json\n{payload}\n```"
+    client = _make_client_returning(fenced)
+
+    result = keyword_extractor.extract_keywords(client, {"title": "AI shorts trend", "body": "some body"})
+
+    assert result == {"keywords": ["ai", "marketing", "shorts"], "usage_context": "viral marketing thread"}
+
+
 def test_extract_keywords_raises_on_api_error():
     client = MagicMock()
     client.messages.create.side_effect = RuntimeError("api down")

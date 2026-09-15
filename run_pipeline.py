@@ -1,3 +1,5 @@
+import re
+
 from anthropic import Anthropic
 
 from trend_pipeline import config, keyword_extractor, storage, youtube_collector
@@ -11,7 +13,8 @@ def run() -> dict:
             cfg["youtube_api_key"], region_code=cfg["region_code"], max_results=cfg["max_results"]
         )
     except Exception as exc:
-        print(f"유튜브 수집 실패: {exc}")
+        sanitized = re.sub(r"key=[^&\s]+", "key=***REDACTED***", str(exc))
+        print(f"유튜브 수집 실패: {sanitized}")
         youtube_items = []
 
     conn = storage.init_db(cfg["db_path"])

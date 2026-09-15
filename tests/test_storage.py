@@ -3,7 +3,7 @@ from trend_pipeline import storage
 
 def make_item(source_id="abc123"):
     return {
-        "source": "reddit",
+        "source": "youtube",
         "source_id": source_id,
         "title": "Test Title",
         "body": "Test body",
@@ -20,7 +20,7 @@ def test_save_content_inserts_new_row_and_returns_id():
 
     assert content_id is not None
     row = conn.execute("SELECT title, source FROM raw_content WHERE id = ?", (content_id,)).fetchone()
-    assert row == ("Test Title", "reddit")
+    assert row == ("Test Title", "youtube")
 
 
 def test_save_content_returns_none_for_duplicate_source_id():

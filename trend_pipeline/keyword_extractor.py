@@ -20,7 +20,15 @@ def extract_keywords(client, content_item: dict) -> dict:
         messages=[{"role": "user", "content": prompt}],
     )
     text = response.content[0].text
-    parsed = json.loads(text)
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        lines = stripped.splitlines()
+        if lines:
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        stripped = "\n".join(lines)
+    parsed = json.loads(stripped)
 
     # Validate response shape
     if "keywords" not in parsed or "usage_context" not in parsed:
