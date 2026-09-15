@@ -66,7 +66,7 @@ def test_generate_report_limits_each_category_to_top_5():
     assert "영상0" in game_section
 
 
-def test_generate_report_excludes_content_outside_this_week():
+def test_generate_report_excludes_content_older_than_7_days():
     conn = storage.init_db(":memory:")
     _insert(conn, "v1", "지난달 영상", "https://example.com/v1", 100, "2026-08-01 00:00:00", "음악")
 
@@ -75,6 +75,29 @@ def test_generate_report_excludes_content_outside_this_week():
     music_section = html_out.split('id="cat-music"')[1].split("</section>")[0]
     assert "지난달 영상" not in music_section
     assert "이번 주 트렌드 없음" in music_section
+
+
+def test_generate_report_uses_rolling_7_day_window_not_calendar_week():
+    # now = Tuesday 2026-09-15. A calendar-week (Monday-start) boundary would be
+    # 2026-09-14, excluding this item collected 6 days before `now`. The rolling
+    # 7-day window must include it.
+    conn = storage.init_db(":memory:")
+    _insert(conn, "v1", "6일 전 영상", "https://example.com/v1", 100, "2026-09-09 13:00:00", "음악")
+
+    html_out = report_generator.generate_report(conn, datetime(2026, 9, 15, 12, 0, 0))
+
+    music_section = html_out.split('id="cat-music"')[1].split("</section>")[0]
+    assert "6일 전 영상" in music_section
+
+
+def test_generate_report_excludes_content_exactly_8_days_old():
+    conn = storage.init_db(":memory:")
+    _insert(conn, "v1", "8일 전 영상", "https://example.com/v1", 100, "2026-09-07 12:00:00", "음악")
+
+    html_out = report_generator.generate_report(conn, datetime(2026, 9, 15, 12, 0, 0))
+
+    music_section = html_out.split('id="cat-music"')[1].split("</section>")[0]
+    assert "8일 전 영상" not in music_section
 
 
 def test_generate_report_shows_empty_state_for_categories_with_no_data():

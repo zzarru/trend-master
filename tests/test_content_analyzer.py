@@ -47,6 +47,38 @@ def test_analyze_content_parses_json_wrapped_in_markdown_fence():
     assert result == {"category": "스포츠", "summary": "경기 하이라이트 클립입니다."}
 
 
+def test_analyze_content_skips_leading_non_text_blocks():
+    # Claude sometimes prepends a thinking block (no .text attribute) before
+    # the actual text block; analyze_content must not assume content[0] is text.
+    payload = json.dumps({"category": "음악", "summary": "요약"})
+    thinking_block = MagicMock(spec=["type"])
+    thinking_block.type = "thinking"
+    text_block = MagicMock()
+    text_block.type = "text"
+    text_block.text = payload
+
+    client = MagicMock()
+    response = MagicMock()
+    response.content = [thinking_block, text_block]
+    client.messages.create.return_value = response
+
+    result = content_analyzer.analyze_content(client, {"title": "t", "body": "b"})
+
+    assert result == {"category": "음악", "summary": "요약"}
+
+
+def test_analyze_content_raises_when_no_text_block_present():
+    non_text_block = MagicMock(spec=["type"])
+    non_text_block.type = "thinking"
+    client = MagicMock()
+    response = MagicMock()
+    response.content = [non_text_block]
+    client.messages.create.return_value = response
+
+    with pytest.raises(ValueError, match="no text block"):
+        content_analyzer.analyze_content(client, {"title": "t", "body": "b"})
+
+
 def test_analyze_content_raises_on_api_error():
     client = MagicMock()
     client.messages.create.side_effect = RuntimeError("api down")

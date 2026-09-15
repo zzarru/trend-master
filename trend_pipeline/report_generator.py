@@ -356,14 +356,12 @@ def _render_section(category: str, items: list[dict], is_first: bool) -> str:
 
 def generate_report(conn: sqlite3.Connection, now: datetime) -> str:
     now_utc = now.astimezone(timezone.utc)
-    week_start_utc = now_utc - timedelta(days=now_utc.weekday())
-    since = week_start_utc.strftime("%Y-%m-%d 00:00:00")
+    since = (now_utc - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
 
-    local_week_start = now - timedelta(days=now.weekday())
-    local_week_end = local_week_start + timedelta(days=6)
+    range_start = now - timedelta(days=7)
     date_range = (
-        f"{local_week_start.year}. {local_week_start.month}. {local_week_start.day} "
-        f"– {local_week_end.month}. {local_week_end.day}"
+        f"{range_start.year}. {range_start.month}. {range_start.day} "
+        f"– {now.month}. {now.day}"
     )
 
     data_by_category = {cat: _top_by_category(conn, since, cat) for cat in CATEGORIES}

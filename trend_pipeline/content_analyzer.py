@@ -25,10 +25,24 @@ def analyze_content(client, content_item: dict) -> dict:
     )
     response = client.messages.create(
         model="claude-sonnet-5",
-        max_tokens=300,
+        # Generous headroom: Claude sometimes emits a "thinking" block whose
+        # tokens count against this budget, which previously left too little
+        # room for the JSON output and produced truncated/unparseable JSON.
+        max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
     )
-    text = response.content[0].text
+
+    # Claude sometimes prepends a non-text block (e.g. extended thinking)
+    # before the text block, so content[0] is not reliably the text block.
+    text = None
+    for block in response.content:
+        candidate = getattr(block, "text", None)
+        if isinstance(candidate, str):
+            text = candidate
+            break
+    if text is None:
+        raise ValueError("no text block in response")
+
     stripped = text.strip()
     if stripped.startswith("```"):
         lines = stripped.splitlines()
