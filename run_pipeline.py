@@ -6,11 +6,20 @@ from trend_pipeline import config, keyword_extractor, reddit_collector, rss_coll
 def run() -> dict:
     cfg = config.load_config()
 
-    reddit_client = reddit_collector.get_reddit_client(
-        cfg["reddit_client_id"], cfg["reddit_client_secret"], cfg["reddit_user_agent"]
-    )
-    reddit_items = reddit_collector.collect_reddit_posts(reddit_client, cfg["subreddits"])
-    rss_items = rss_collector.collect_rss_entries(cfg["rss_feeds"])
+    try:
+        reddit_client = reddit_collector.get_reddit_client(
+            cfg["reddit_client_id"], cfg["reddit_client_secret"], cfg["reddit_user_agent"]
+        )
+        reddit_items = reddit_collector.collect_reddit_posts(reddit_client, cfg["subreddits"])
+    except Exception as exc:
+        print(f"Reddit 수집 실패: {exc}")
+        reddit_items = []
+
+    try:
+        rss_items = rss_collector.collect_rss_entries(cfg["rss_feeds"])
+    except Exception as exc:
+        print(f"RSS 수집 실패: {exc}")
+        rss_items = []
 
     conn = storage.init_db(cfg["db_path"])
 
