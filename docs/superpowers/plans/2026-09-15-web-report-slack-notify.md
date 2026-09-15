@@ -774,7 +774,11 @@ git commit -m "feat: wire report generation, publishing, and Slack notification 
 - Consumes: Task 1~5에서 만든 모든 모듈
 - Produces: 없음 (검증 결과만 확인)
 
-- [ ] **Step 1: GitHub 저장소 생성 & push**
+> **⚠️ 브랜치 주의사항 (최종 리뷰에서 발견):** `git_publisher.publish()`는 **현재 체크아웃된 브랜치**에 커밋하고 그 브랜치로 push합니다. 반면 GitHub Pages는 특정 브랜치(보통 `main`/`master`)만 서빙합니다. 즉, `trend-pipeline-mvp` 브랜치(이 워크트리)에서 `python run_pipeline.py`를 실행하면 리포트는 `trend-pipeline-mvp` 브랜치에 커밋되고, **Pages가 `main`을 서빙하도록 설정돼 있으면 절대 반영되지 않습니다.** 아래 Step 1에서 이 브랜치를 먼저 `main`(또는 `master`)으로 병합한 뒤, **병합된 메인 체크아웃에서** 이후 Step들을 진행하세요 (`superpowers:finishing-a-development-branch`로 병합).
+
+- [ ] **Step 1: 브랜치 병합 & GitHub 저장소 생성/push**
+
+이 브랜치(`trend-pipeline-mvp`)의 작업이 끝나면 `superpowers:finishing-a-development-branch`를 통해 `master`로 병합합니다. **이후 Step들은 병합된 `master` 체크아웃(워크트리가 아닌 원래 저장소 디렉터리)에서 진행하세요.**
 
 로컬 저장소(`ai-workflow`)를 GitHub에 **public**으로 새로 만들고 push합니다 (지금은 remote가 없는 상태).
 
@@ -783,15 +787,9 @@ gh repo create <owner>/<repo-name> --public --source=. --remote=origin
 git push -u origin master
 ```
 
-`trend-pipeline-mvp` 브랜치도 push합니다.
-
-```bash
-git push -u origin trend-pipeline-mvp
-```
-
 - [ ] **Step 2: GitHub Pages 활성화**
 
-GitHub 저장소 → Settings → Pages → Source를 `main`(또는 `master`) 브랜치의 `/docs` 폴더로 지정합니다. (한 번만 설정하면 이후 push마다 자동 반영)
+GitHub 저장소 → Settings → Pages → Source를 `master` 브랜치(방금 push한, `trend-pipeline-mvp`가 병합된 브랜치)의 `/docs` 폴더로 지정합니다. (한 번만 설정하면 이후 push마다 자동 반영)
 
 - [ ] **Step 3: 슬랙 Incoming Webhook 발급**
 
@@ -808,6 +806,8 @@ SLACK_WEBHOOK_URL=<발급받은 webhook url>
 
 - [ ] **Step 5: 파이프라인 실제 실행**
 
+**반드시 `master` 브랜치가 체크아웃된 디렉터리에서 실행합니다** (워크트리의 `trend-pipeline-mvp` 브랜치에서 실행하면 Pages가 서빙하는 브랜치와 달라 반영되지 않습니다).
+
 ```bash
 python run_pipeline.py
 ```
@@ -816,6 +816,6 @@ python run_pipeline.py
 
 - [ ] **Step 6: 결과 확인**
 
-- `docs/index.html`이 새로 생성/수정되어 커밋됐는지 `git log -1 --stat`으로 확인
+- `docs/index.html`이 새로 생성/수정되어 `master` 브랜치에 커밋됐는지 `git log -1 --stat`으로 확인 (`git branch --show-current`로 현재 브랜치가 `master`인지도 함께 확인)
 - 브라우저에서 `https://<github-username>.github.io/<repo-name>/` 접속해 리포트가 보이는지 확인 (GitHub Pages 반영까지 1~2분 소요될 수 있음)
 - 슬랙 채널에 알림 메시지가 도착했는지 확인
