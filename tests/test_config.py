@@ -24,3 +24,31 @@ def test_load_config_raises_when_required_keys_missing(monkeypatch):
     import pytest
     with pytest.raises(ValueError, match="YOUTUBE_API_KEY"):
         config.load_config()
+
+
+def test_load_config_applies_report_and_slack_defaults(monkeypatch):
+    monkeypatch.setenv("YOUTUBE_API_KEY", "test-youtube-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.delenv("TREND_PIPELINE_REPORT_PATH", raising=False)
+    monkeypatch.delenv("REPORT_BASE_URL", raising=False)
+    monkeypatch.delenv("SLACK_WEBHOOK_URL", raising=False)
+
+    cfg = config.load_config()
+
+    assert cfg["report_path"] == config.DEFAULT_REPORT_PATH
+    assert cfg["report_base_url"] == ""
+    assert cfg["slack_webhook_url"] == ""
+
+
+def test_load_config_reads_report_and_slack_overrides(monkeypatch):
+    monkeypatch.setenv("YOUTUBE_API_KEY", "test-youtube-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.setenv("TREND_PIPELINE_REPORT_PATH", "out/report.html")
+    monkeypatch.setenv("REPORT_BASE_URL", "https://user.github.io/repo/")
+    monkeypatch.setenv("SLACK_WEBHOOK_URL", "https://hooks.slack.com/services/x")
+
+    cfg = config.load_config()
+
+    assert cfg["report_path"] == "out/report.html"
+    assert cfg["report_base_url"] == "https://user.github.io/repo/"
+    assert cfg["slack_webhook_url"] == "https://hooks.slack.com/services/x"
