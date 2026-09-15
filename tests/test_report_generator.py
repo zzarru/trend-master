@@ -133,15 +133,28 @@ def test_generate_report_renders_tabs_for_all_categories_with_counts():
     assert "<span class=\"n\">1</span>" in music_tab
 
 
-def test_generate_report_only_first_category_section_visible_by_default():
+def test_generate_report_only_top_overall_section_visible_by_default():
     conn = storage.init_db(":memory:")
 
     html_out = report_generator.generate_report(conn, datetime(2026, 9, 15, 12, 0, 0))
 
-    ent_section = html_out.split('id="cat-ent"')[1].split(">")[0]
-    music_section = html_out.split('id="cat-music"')[1].split(">")[0]
-    assert "hidden" not in ent_section
-    assert "hidden" in music_section
+    top_section_tag = html_out.split('id="top-overall"')[1].split(">")[0]
+    ent_section_tag = html_out.split('id="cat-ent"')[1].split(">")[0]
+    music_section_tag = html_out.split('id="cat-music"')[1].split(">")[0]
+    assert "hidden" not in top_section_tag
+    assert "hidden" in ent_section_tag
+    assert "hidden" in music_section_tag
+
+
+def test_generate_report_renders_top_overall_tab_first_and_selected():
+    conn = storage.init_db(":memory:")
+
+    html_out = report_generator.generate_report(conn, datetime(2026, 9, 15, 12, 0, 0))
+
+    tabs_nav = html_out.split('role="tablist"')[1].split("</nav>")[0]
+    assert tabs_nav.index('data-target="top-overall"') < tabs_nav.index('data-target="cat-ent"')
+    top_tab = tabs_nav.split('data-target="top-overall"')[1].split("</button>")[0]
+    assert 'aria-selected="true"' in top_tab
 
 
 def test_generate_report_shows_overall_top10_ranked_by_score_desc():

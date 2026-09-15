@@ -147,8 +147,6 @@ _PAGE_TEMPLATE = """<title>트렌드위클리</title>
 
   .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-  .top-overall-section { margin-top: 22px; }
-
   section.category { margin-top: 30px; }
   section.category[hidden] { display: none; }
 
@@ -267,12 +265,10 @@ _PAGE_TEMPLATE = """<title>트렌드위클리</title>
       <span class="tag">유튜브 인기 급상승 · KR</span>
     </div>
     <p class="subhead">
-      이번 주 한국 유튜브 인기 급상승 영상 중 전체 조회수 상위 10건과,
-      마케팅 관점 8개 카테고리별 조회수 상위 5건을 추렸습니다.
+      이번 주 한국 유튜브 인기 급상승 영상을 탭으로 살펴보세요 —
+      전체 조회수 TOP 10과, 마케팅 관점 8개 카테고리별 TOP 5.
     </p>
   </header>
-
-__TOP_OVERALL__
 
   <nav class="tabs" role="tablist" aria-label="카테고리">
 __TABS__
@@ -340,43 +336,17 @@ def _top_overall(conn: sqlite3.Connection, since: str) -> list[dict]:
     ]
 
 
-def _render_top_overall(items: list[dict]) -> str:
-    if not items:
-        body = '    <p class="empty-note">이번 주 트렌드 없음</p>'
-    else:
-        rows = "\n".join(
-            f"""      <li>
-        <span class="rank">{rank:02d}</span>
-        <div class="item-body">
-          <a class="item-title" href="{html.escape(item['url'], quote=True)}">{html.escape(item['title'])}</a>
-          <div class="item-meta">조회수 {item['score']:,}회 · {html.escape(item['category'])}</div>
-          <p class="item-summary">{html.escape(item['summary'])}</p>
-        </div>
-      </li>"""
-            for rank, item in enumerate(items, start=1)
-        )
-        body = f'    <ol class="items">\n{rows}\n    </ol>'
-
-    return (
-        '  <section class="top-overall-section" id="top-overall">\n'
-        '    <div class="cat-head">\n'
-        '      <h2>전체 TOP 10</h2>\n'
-        f'      <span class="count">TOP {_TOP_OVERALL_N} · {len(items)}건</span>\n'
-        '    </div>\n'
-        f"{body}\n"
-        "  </section>"
-    )
-
-
-def _render_tab(category: str, count: int, is_first: bool) -> str:
+def _render_tab(label: str, target_id: str, count: int, is_first: bool) -> str:
     selected = "true" if is_first else "false"
     return (
-        f'    <button class="tab" role="tab" type="button" data-target="{_TAB_IDS[category]}" '
-        f'aria-selected="{selected}">{html.escape(category)}<span class="n">{count}</span></button>'
+        f'    <button class="tab" role="tab" type="button" data-target="{target_id}" '
+        f'aria-selected="{selected}">{html.escape(label)}<span class="n">{count}</span></button>'
     )
 
 
-def _render_section(category: str, items: list[dict], is_first: bool) -> str:
+def _render_items_section(
+    label: str, target_id: str, items: list[dict], is_first: bool, top_n: int, show_category_tag: bool = False
+) -> str:
     if not items:
         body = '    <p class="empty-note">이번 주 트렌드 없음</p>'
     else:
@@ -385,7 +355,9 @@ def _render_section(category: str, items: list[dict], is_first: bool) -> str:
         <span class="rank">{rank:02d}</span>
         <div class="item-body">
           <a class="item-title" href="{html.escape(item['url'], quote=True)}">{html.escape(item['title'])}</a>
-          <div class="item-meta">조회수 {item['score']:,}회</div>
+          <div class="item-meta">조회수 {item['score']:,}회{
+              f" · {html.escape(item['category'])}" if show_category_tag else ""
+          }</div>
           <p class="item-summary">{html.escape(item['summary'])}</p>
         </div>
       </li>"""
@@ -395,10 +367,10 @@ def _render_section(category: str, items: list[dict], is_first: bool) -> str:
 
     hidden_attr = "" if is_first else " hidden"
     return (
-        f'  <section class="category" id="{_TAB_IDS[category]}"{hidden_attr}>\n'
+        f'  <section class="category" id="{target_id}"{hidden_attr}>\n'
         f'    <div class="cat-head">\n'
-        f'      <h2>{html.escape(category)}</h2>\n'
-        f'      <span class="count">TOP {_TOP_N} · {len(items)}건</span>\n'
+        f'      <h2>{html.escape(label)}</h2>\n'
+        f'      <span class="count">TOP {top_n} · {len(items)}건</span>\n'
         f'    </div>\n'
         f"{body}\n"
         f"  </section>"
@@ -416,23 +388,23 @@ def generate_report(conn: sqlite3.Connection, now: datetime) -> str:
     )
 
     overall_items = _top_overall(conn, since)
-    top_overall_html = _render_top_overall(overall_items)
-
     data_by_category = {cat: _top_by_category(conn, since, cat) for cat in CATEGORIES}
 
     tabs_html = "\n".join(
-        _render_tab(cat, len(data_by_category[cat]), is_first=(i == 0))
-        for i, cat in enumerate(CATEGORIES)
+        [_render_tab("전체", "top-overall", len(overall_items), is_first=True)]
+        + [_render_tab(cat, _TAB_IDS[cat], len(data_by_category[cat]), is_first=False) for cat in CATEGORIES]
     )
     sections_html = "\n\n".join(
-        _render_section(cat, data_by_category[cat], is_first=(i == 0))
-        for i, cat in enumerate(CATEGORIES)
+        [_render_items_section("전체 TOP 10", "top-overall", overall_items, is_first=True, top_n=_TOP_OVERALL_N, show_category_tag=True)]
+        + [
+            _render_items_section(cat, _TAB_IDS[cat], data_by_category[cat], is_first=False, top_n=_TOP_N)
+            for cat in CATEGORIES
+        ]
     )
 
     return (
         _PAGE_TEMPLATE
         .replace("__DATE_RANGE__", html.escape(date_range))
-        .replace("__TOP_OVERALL__", top_overall_html)
         .replace("__TABS__", tabs_html)
         .replace("__SECTIONS__", sections_html)
         .replace("__GENERATED_AT__", html.escape(now.isoformat(timespec="seconds")))
