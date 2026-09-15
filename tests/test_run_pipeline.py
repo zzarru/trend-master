@@ -167,8 +167,13 @@ def test_run_publishes_report_and_notifies_slack_when_configured(
     mock_notify.assert_called_once_with(
         "https://hooks.slack.com/services/x", "https://user.github.io/repo/", 1
     )
-    mock_generate_report.assert_called_once()
-    assert mock_generate_report.call_args.args[2] == 1
+    # Called twice: once for docs/index.html (default archive_href), once for
+    # the archived copy (archive_href="index.html", since it lives one level deeper).
+    assert mock_generate_report.call_count == 2
+    first_call, second_call = mock_generate_report.call_args_list
+    assert first_call.args[2] == 1
+    assert second_call.args[2] == 1
+    assert second_call.kwargs.get("archive_href") == "index.html"
 
 
 @patch("run_pipeline.slack_notifier.notify")

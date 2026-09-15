@@ -284,7 +284,7 @@ _PAGE_TEMPLATE = """<title>트렌드위클리</title>
     <p class="subhead">
       이번 주 한국 유튜브 인기 급상승 영상을 탭으로 살펴보세요 —
       전체 조회수 TOP 10과, 마케팅 관점 8개 카테고리별 TOP 5.
-      <a class="archive-link" href="archive/">지난 호 보기 →</a>
+      <a class="archive-link" href="__ARCHIVE_HREF__">지난 호 보기 →</a>
     </p>
   </header>
 
@@ -395,7 +395,9 @@ def _render_items_section(
     )
 
 
-def generate_report(conn: sqlite3.Connection, now: datetime, issue_number: int) -> str:
+def generate_report(
+    conn: sqlite3.Connection, now: datetime, issue_number: int, archive_href: str = "archive/"
+) -> str:
     now_utc = now.astimezone(timezone.utc)
     since = (now_utc - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
 
@@ -423,6 +425,7 @@ def generate_report(conn: sqlite3.Connection, now: datetime, issue_number: int) 
     return (
         _PAGE_TEMPLATE
         .replace("__ISSUE_NUMBER__", str(issue_number))
+        .replace("__ARCHIVE_HREF__", html.escape(archive_href, quote=True))
         .replace("__DATE_RANGE__", html.escape(date_range))
         .replace("__TABS__", tabs_html)
         .replace("__SECTIONS__", sections_html)

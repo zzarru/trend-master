@@ -231,6 +231,22 @@ def test_generate_report_links_to_archive_index():
     assert 'href="archive/"' in masthead or 'href="archive/index.html"' in masthead
 
 
+def test_generate_report_archive_link_is_relative_to_archive_dir_when_overridden():
+    # The copy written into docs/archive/<date>.html lives one directory deeper
+    # than docs/index.html, so it needs a different relative link back to the
+    # archive listing (docs/archive/index.html) — not the same "archive/" the
+    # top-level index.html uses (which would resolve to docs/archive/archive/).
+    conn = storage.init_db(":memory:")
+
+    html_out = report_generator.generate_report(
+        conn, datetime(2026, 9, 15, 12, 0, 0), issue_number=1, archive_href="index.html"
+    )
+
+    masthead = html_out.split('class="masthead"')[1].split("</header>")[0]
+    assert 'href="index.html"' in masthead
+    assert 'href="archive/"' not in masthead
+
+
 def test_generate_archive_index_lists_issues_newest_first():
     issues = [
         {"issue_number": 1, "date": "2026-09-15"},

@@ -78,9 +78,12 @@ def run() -> dict:
         with open(cfg["report_path"], "w", encoding="utf-8") as f:
             f.write(report_html)
 
+        archive_report_html = report_generator.generate_report(
+            conn, now, issue_number, archive_href="index.html"
+        )
         archive_path = os.path.join(archive_dir, f"{today_str}.html")
         with open(archive_path, "w", encoding="utf-8") as f:
-            f.write(report_html)
+            f.write(archive_report_html)
 
         archive_index_path = os.path.join(archive_dir, "index.html")
         with open(archive_index_path, "w", encoding="utf-8") as f:
