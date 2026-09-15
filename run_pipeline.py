@@ -1,30 +1,23 @@
 from anthropic import Anthropic
 
-from trend_pipeline import config, keyword_extractor, reddit_collector, rss_collector, storage
+from trend_pipeline import config, keyword_extractor, storage, youtube_collector
 
 
 def run() -> dict:
     cfg = config.load_config()
 
     try:
-        reddit_client = reddit_collector.get_reddit_client(
-            cfg["reddit_client_id"], cfg["reddit_client_secret"], cfg["reddit_user_agent"]
+        youtube_items = youtube_collector.collect_youtube_trending(
+            cfg["youtube_api_key"], region_code=cfg["region_code"], max_results=cfg["max_results"]
         )
-        reddit_items = reddit_collector.collect_reddit_posts(reddit_client, cfg["subreddits"])
     except Exception as exc:
-        print(f"Reddit 수집 실패: {exc}")
-        reddit_items = []
-
-    try:
-        rss_items = rss_collector.collect_rss_entries(cfg["rss_feeds"])
-    except Exception as exc:
-        print(f"RSS 수집 실패: {exc}")
-        rss_items = []
+        print(f"유튜브 수집 실패: {exc}")
+        youtube_items = []
 
     conn = storage.init_db(cfg["db_path"])
 
     new_items = []
-    for item in reddit_items + rss_items:
+    for item in youtube_items:
         content_id = storage.save_content(conn, item)
         if content_id is not None:
             new_items.append((content_id, item))
@@ -44,14 +37,12 @@ def run() -> dict:
             keywords_failed += 1
 
     summary = {
-        "reddit_collected": len(reddit_items),
-        "rss_collected": len(rss_items),
+        "youtube_collected": len(youtube_items),
         "keywords_success": keywords_success,
         "keywords_failed": keywords_failed,
     }
 
-    print(f"Reddit 수집: {summary['reddit_collected']}건")
-    print(f"RSS 수집: {summary['rss_collected']}건")
+    print(f"유튜브 수집: {summary['youtube_collected']}건")
     print(f"키워드 추출: 성공 {summary['keywords_success']}건 / 실패 {summary['keywords_failed']}건")
 
     return summary
