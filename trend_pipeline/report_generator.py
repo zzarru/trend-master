@@ -16,6 +16,7 @@ _TAB_IDS = {
 }
 
 _TOP_N = 5
+_TOP_OVERALL_N = 10
 
 _PAGE_TEMPLATE = """<title>트렌드위클리</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Serif+KR:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&display=swap">
@@ -146,6 +147,8 @@ _PAGE_TEMPLATE = """<title>트렌드위클리</title>
 
   .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+  .top-overall-section { margin-top: 22px; }
+
   section.category { margin-top: 30px; }
   section.category[hidden] { display: none; }
 
@@ -264,10 +267,12 @@ _PAGE_TEMPLATE = """<title>트렌드위클리</title>
       <span class="tag">유튜브 인기 급상승 · KR</span>
     </div>
     <p class="subhead">
-      이번 주 한국 유튜브 인기 급상승 영상을 마케팅 관점 7개 카테고리로 나누고,
-      카테고리별 조회수 상위 5건만 추렸습니다.
+      이번 주 한국 유튜브 인기 급상승 영상 중 전체 조회수 상위 10건과,
+      마케팅 관점 8개 카테고리별 조회수 상위 5건을 추렸습니다.
     </p>
   </header>
+
+__TOP_OVERALL__
 
   <nav class="tabs" role="tablist" aria-label="카테고리">
 __TABS__
@@ -318,6 +323,51 @@ def _top_by_category(conn: sqlite3.Connection, since: str, category: str) -> lis
     ]
 
 
+def _top_overall(conn: sqlite3.Connection, since: str) -> list[dict]:
+    rows = conn.execute(
+        """
+        SELECT title, url, score, summary, category
+        FROM raw_content
+        WHERE collected_at >= ?
+        ORDER BY score DESC
+        LIMIT ?
+        """,
+        (since, _TOP_OVERALL_N),
+    ).fetchall()
+    return [
+        {"title": title, "url": url, "score": score or 0, "summary": summary or "", "category": category or ""}
+        for title, url, score, summary, category in rows
+    ]
+
+
+def _render_top_overall(items: list[dict]) -> str:
+    if not items:
+        body = '    <p class="empty-note">이번 주 트렌드 없음</p>'
+    else:
+        rows = "\n".join(
+            f"""      <li>
+        <span class="rank">{rank:02d}</span>
+        <div class="item-body">
+          <a class="item-title" href="{html.escape(item['url'], quote=True)}">{html.escape(item['title'])}</a>
+          <div class="item-meta">조회수 {item['score']:,}회 · {html.escape(item['category'])}</div>
+          <p class="item-summary">{html.escape(item['summary'])}</p>
+        </div>
+      </li>"""
+            for rank, item in enumerate(items, start=1)
+        )
+        body = f'    <ol class="items">\n{rows}\n    </ol>'
+
+    return (
+        '  <section class="top-overall-section" id="top-overall">\n'
+        '    <div class="cat-head">\n'
+        '      <h2>전체 TOP 10</h2>\n'
+        f'      <span class="count">TOP {_TOP_OVERALL_N} · {len(items)}건</span>\n'
+        '    </div>\n'
+        f"{body}\n"
+        "  </section>"
+    )
+
+
 def _render_tab(category: str, count: int, is_first: bool) -> str:
     selected = "true" if is_first else "false"
     return (
@@ -365,6 +415,9 @@ def generate_report(conn: sqlite3.Connection, now: datetime) -> str:
         f"– {now.month}. {now.day}"
     )
 
+    overall_items = _top_overall(conn, since)
+    top_overall_html = _render_top_overall(overall_items)
+
     data_by_category = {cat: _top_by_category(conn, since, cat) for cat in CATEGORIES}
 
     tabs_html = "\n".join(
@@ -379,6 +432,7 @@ def generate_report(conn: sqlite3.Connection, now: datetime) -> str:
     return (
         _PAGE_TEMPLATE
         .replace("__DATE_RANGE__", html.escape(date_range))
+        .replace("__TOP_OVERALL__", top_overall_html)
         .replace("__TABS__", tabs_html)
         .replace("__SECTIONS__", sections_html)
         .replace("__GENERATED_AT__", html.escape(now.isoformat(timespec="seconds")))

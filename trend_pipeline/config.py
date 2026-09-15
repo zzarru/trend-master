@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DEFAULT_REGION_CODE = "KR"
-DEFAULT_MAX_RESULTS = 25
+DEFAULT_MAX_RESULTS = 50
 DEFAULT_REPORT_PATH = "docs/index.html"
 
 _REQUIRED_ENV_VARS = ["YOUTUBE_API_KEY", "ANTHROPIC_API_KEY"]

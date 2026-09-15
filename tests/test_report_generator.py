@@ -106,7 +106,8 @@ def test_generate_report_shows_empty_state_for_categories_with_no_data():
 
     html_out = report_generator.generate_report(conn, datetime(2026, 9, 15, 12, 0, 0))
 
-    assert html_out.count("이번 주 트렌드 없음") == len(CATEGORIES)
+    # +1 for the overall Top 10 section's own empty state
+    assert html_out.count("이번 주 트렌드 없음") == len(CATEGORIES) + 1
 
 
 def test_generate_report_renders_ai_it_category_tab():
@@ -141,6 +142,45 @@ def test_generate_report_only_first_category_section_visible_by_default():
     music_section = html_out.split('id="cat-music"')[1].split(">")[0]
     assert "hidden" not in ent_section
     assert "hidden" in music_section
+
+
+def test_generate_report_shows_overall_top10_ranked_by_score_desc():
+    conn = storage.init_db(":memory:")
+    _insert(conn, "v1", "낮은 조회수", "https://example.com/v1", 10, "2026-09-15 01:00:00", "음악")
+    _insert(conn, "v2", "높은 조회수", "https://example.com/v2", 999, "2026-09-15 02:00:00", "게임")
+
+    html_out = report_generator.generate_report(conn, datetime(2026, 9, 15, 12, 0, 0))
+
+    top_section = html_out.split('id="top-overall"')[1].split("</section>")[0]
+    assert "높은 조회수" in top_section
+    assert "낮은 조회수" in top_section
+    assert top_section.index("높은 조회수") < top_section.index("낮은 조회수")
+
+
+def test_generate_report_limits_overall_top_to_10():
+    conn = storage.init_db(":memory:")
+    for i in range(12):
+        _insert(
+            conn, f"v{i}", f"영상{i}", f"https://example.com/v{i}", 100 - i,
+            "2026-09-15 01:00:00", "게임",
+        )
+
+    html_out = report_generator.generate_report(conn, datetime(2026, 9, 15, 12, 0, 0))
+
+    top_section = html_out.split('id="top-overall"')[1].split("</section>")[0]
+    assert "영상9" in top_section
+    assert "영상10" not in top_section
+    assert "영상11" not in top_section
+
+
+def test_generate_report_overall_top10_shows_category_tag_per_item():
+    conn = storage.init_db(":memory:")
+    _insert(conn, "v1", "게임 영상", "https://example.com/v1", 500, "2026-09-15 01:00:00", "게임")
+
+    html_out = report_generator.generate_report(conn, datetime(2026, 9, 15, 12, 0, 0))
+
+    top_section = html_out.split('id="top-overall"')[1].split("</section>")[0]
+    assert "게임" in top_section
 
 
 def test_generate_report_uses_real_utc_collected_at_default_for_this_week_section():
