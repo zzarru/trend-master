@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git commit*)",
+            "command": "output=$(python -m pytest -q 2>&1); ec=$?\nif [ $ec -ne 0 ]; then\n  printf '%s' \"$output\" | tail -c 1500 | python -c \"import json,sys; print(json.dumps({'hookSpecificOutput':{'hookEventName':'PreToolUse','permissionDecision':'deny','permissionDecisionReason':'pytest failed - fix tests before committing:\\n'+sys.stdin.read()}}))\"\nelse\n  echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'\nfi",
+            "timeout": 60,
+            "statusMessage": "Running pytest before commit..."
+          }
+        ]
+      }
+    ]
+  }
+}
