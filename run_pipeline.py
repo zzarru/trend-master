@@ -5,8 +5,8 @@ from anthropic import Anthropic
 
 from trend_pipeline import (
     config,
+    content_analyzer,
     git_publisher,
-    keyword_extractor,
     report_generator,
     slack_notifier,
     storage,
@@ -34,19 +34,22 @@ def run() -> dict:
         if content_id is not None:
             new_items.append((content_id, item))
 
+    for _, item in new_items:
+        item["top_comments"] = youtube_collector.fetch_top_comments(cfg["youtube_api_key"], item["source_id"])
+
     anthropic_client = Anthropic(api_key=cfg["anthropic_api_key"])
-    extraction_results = keyword_extractor.extract_keywords_batch(
+    analysis_results = content_analyzer.analyze_content_batch(
         anthropic_client, [item for _, item in new_items]
     )
 
-    keywords_success = 0
-    keywords_failed = 0
-    for (content_id, _), result in zip(new_items, extraction_results):
+    analysis_success = 0
+    analysis_failed = 0
+    for (content_id, _), result in zip(new_items, analysis_results):
         if result["success"]:
-            storage.save_keywords(conn, content_id, result["keywords"], result["usage_context"])
-            keywords_success += 1
+            storage.save_analysis(conn, content_id, result["category"], result["summary"])
+            analysis_success += 1
         else:
-            keywords_failed += 1
+            analysis_failed += 1
 
     report_published = False
     slack_notified = False
@@ -68,14 +71,14 @@ def run() -> dict:
 
     summary = {
         "youtube_collected": len(youtube_items),
-        "keywords_success": keywords_success,
-        "keywords_failed": keywords_failed,
+        "analysis_success": analysis_success,
+        "analysis_failed": analysis_failed,
         "report_published": report_published,
         "slack_notified": slack_notified,
     }
 
     print(f"유튜브 수집: {summary['youtube_collected']}건")
-    print(f"키워드 추출: 성공 {summary['keywords_success']}건 / 실패 {summary['keywords_failed']}건")
+    print(f"콘텐츠 분석: 성공 {summary['analysis_success']}건 / 실패 {summary['analysis_failed']}건")
     print(f"리포트 배포: {'성공' if report_published else '건너뜀/실패'}")
     print(f"슬랙 알림: {'성공' if slack_notified else '건너뜀/실패'}")
 

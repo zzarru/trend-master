@@ -1,18 +1,27 @@
 import json
 
-_PROMPT_TEMPLATE = """다음 콘텐츠에서 마케팅 트렌드 관점의 핵심 키워드 3~5개와, 이 콘텐츠가 어떻게 쓰이고 있는지 한 줄 요약을 뽑아줘.
+from trend_pipeline.categories import CATEGORIES, DEFAULT_CATEGORY
+
+_PROMPT_TEMPLATE = """다음 유튜브 영상 정보를 보고, 마케팅 관점에서 아래 카테고리 중 하나로 분류하고 2~3문장으로 요약해줘.
+
+카테고리 목록: {categories}
+
 반드시 아래 JSON 형식으로만 응답해:
-{{"keywords": ["...", "..."], "usage_context": "..."}}
+{{"category": "...", "summary": "..."}}
 
 제목: {title}
-본문: {body}
+설명: {body}
+상위 댓글: {comments}
 """
 
 
-def extract_keywords(client, content_item: dict) -> dict:
+def analyze_content(client, content_item: dict) -> dict:
+    comments = content_item.get("top_comments") or []
     prompt = _PROMPT_TEMPLATE.format(
+        categories=", ".join(CATEGORIES),
         title=content_item.get("title", ""),
         body=content_item.get("body", "")[:2000],
+        comments=" / ".join(comments[:5]) if comments else "(댓글 없음)",
     )
     response = client.messages.create(
         model="claude-sonnet-5",
@@ -30,25 +39,25 @@ def extract_keywords(client, content_item: dict) -> dict:
         stripped = "\n".join(lines)
     parsed = json.loads(stripped)
 
-    # Validate response shape
-    if "keywords" not in parsed or "usage_context" not in parsed:
-        raise ValueError("keyword extraction response missing 'keywords' or 'usage_context'")
-    if not isinstance(parsed["keywords"], list):
-        raise ValueError("keyword extraction response 'keywords' must be a list")
+    if "category" not in parsed or "summary" not in parsed:
+        raise ValueError("content analysis response missing 'category' or 'summary'")
+
+    if parsed["category"] not in CATEGORIES:
+        parsed["category"] = DEFAULT_CATEGORY
 
     return parsed
 
 
-def extract_keywords_batch(client, content_items: list[dict]) -> list[dict]:
+def analyze_content_batch(client, content_items: list[dict]) -> list[dict]:
     results = []
     for item in content_items:
         try:
-            extracted = extract_keywords(client, item)
+            analyzed = analyze_content(client, item)
             results.append(
                 {
                     "content_item": item,
-                    "keywords": extracted["keywords"],
-                    "usage_context": extracted["usage_context"],
+                    "category": analyzed["category"],
+                    "summary": analyzed["summary"],
                     "success": True,
                 }
             )
@@ -56,8 +65,8 @@ def extract_keywords_batch(client, content_items: list[dict]) -> list[dict]:
             results.append(
                 {
                     "content_item": item,
-                    "keywords": None,
-                    "usage_context": None,
+                    "category": None,
+                    "summary": None,
                     "error": str(exc),
                     "success": False,
                 }

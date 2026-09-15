@@ -1,3 +1,5 @@
+import sqlite3
+
 from trend_pipeline import storage
 
 
@@ -34,13 +36,45 @@ def test_save_content_returns_none_for_duplicate_source_id():
     assert count == 1
 
 
-def test_save_keywords_links_to_content():
+def test_save_analysis_sets_category_and_summary():
     conn = storage.init_db(":memory:")
     content_id = storage.save_content(conn, make_item())
 
-    storage.save_keywords(conn, content_id, ["ai", "marketing"], "used in a viral thread")
+    storage.save_analysis(conn, content_id, "음악", "신곡 뮤직비디오에 대한 반응 요약")
 
-    rows = conn.execute(
-        "SELECT keyword, usage_context FROM keywords WHERE content_id = ? ORDER BY keyword", (content_id,)
-    ).fetchall()
-    assert rows == [("ai", "used in a viral thread"), ("marketing", "used in a viral thread")]
+    row = conn.execute(
+        "SELECT category, summary FROM raw_content WHERE id = ?", (content_id,)
+    ).fetchone()
+    assert row == ("음악", "신곡 뮤직비디오에 대한 반응 요약")
+
+
+def test_init_db_adds_category_and_summary_columns_to_existing_table(tmp_path):
+    db_path = str(tmp_path / "legacy.db")
+    conn = sqlite3.connect(db_path)
+    conn.executescript(
+        """
+        CREATE TABLE raw_content (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source TEXT NOT NULL,
+            source_id TEXT NOT NULL UNIQUE,
+            title TEXT NOT NULL,
+            body TEXT,
+            url TEXT,
+            score INTEGER,
+            num_comments INTEGER,
+            published_at TEXT,
+            collected_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    migrated = storage.init_db(db_path)
+
+    columns = {row[1] for row in migrated.execute("PRAGMA table_info(raw_content)")}
+    assert "category" in columns
+    assert "summary" in columns
+
+    # Re-running init_db on an already-migrated DB must not error.
+    storage.init_db(db_path)

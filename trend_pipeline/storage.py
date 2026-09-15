@@ -11,14 +11,9 @@ CREATE TABLE IF NOT EXISTS raw_content (
     score INTEGER,
     num_comments INTEGER,
     published_at TEXT,
-    collected_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS keywords (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    content_id INTEGER NOT NULL REFERENCES raw_content(id),
-    keyword TEXT NOT NULL,
-    usage_context TEXT
+    collected_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    category TEXT,
+    summary TEXT
 );
 """
 
@@ -26,6 +21,13 @@ CREATE TABLE IF NOT EXISTS keywords (
 def init_db(db_path: str) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.executescript(_SCHEMA)
+
+    existing_columns = {row[1] for row in conn.execute("PRAGMA table_info(raw_content)")}
+    if "category" not in existing_columns:
+        conn.execute("ALTER TABLE raw_content ADD COLUMN category TEXT")
+    if "summary" not in existing_columns:
+        conn.execute("ALTER TABLE raw_content ADD COLUMN summary TEXT")
+
     conn.commit()
     return conn
 
@@ -55,9 +57,9 @@ def save_content(conn: sqlite3.Connection, item: dict) -> int | None:
         return None
 
 
-def save_keywords(conn: sqlite3.Connection, content_id: int, keywords: list[str], usage_context: str) -> None:
-    conn.executemany(
-        "INSERT INTO keywords (content_id, keyword, usage_context) VALUES (?, ?, ?)",
-        [(content_id, keyword, usage_context) for keyword in keywords],
+def save_analysis(conn: sqlite3.Connection, content_id: int, category: str, summary: str) -> None:
+    conn.execute(
+        "UPDATE raw_content SET category = ?, summary = ? WHERE id = ?",
+        (category, summary, content_id),
     )
     conn.commit()

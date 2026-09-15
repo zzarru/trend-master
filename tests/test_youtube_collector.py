@@ -61,3 +61,44 @@ def test_collect_youtube_trending_handles_missing_statistics_gracefully(monkeypa
     assert result[0]["num_comments"] == 0
     assert result[0]["body"] == ""
     assert result[0]["published_at"] == ""
+
+
+def test_fetch_top_comments_extracts_top_level_comment_text(monkeypatch):
+    api_items = [
+        {"snippet": {"topLevelComment": {"snippet": {"textDisplay": "첫 번째 댓글"}}}},
+        {"snippet": {"topLevelComment": {"snippet": {"textDisplay": "두 번째 댓글"}}}},
+    ]
+    mock_get = MagicMock(return_value=_make_response(api_items))
+    monkeypatch.setattr(youtube_collector.requests, "get", mock_get)
+
+    result = youtube_collector.fetch_top_comments("fake-api-key", "abc123", max_results=5)
+
+    assert result == ["첫 번째 댓글", "두 번째 댓글"]
+    call_kwargs = mock_get.call_args.kwargs
+    assert call_kwargs["params"]["videoId"] == "abc123"
+    assert call_kwargs["params"]["maxResults"] == 5
+    assert call_kwargs["params"]["key"] == "fake-api-key"
+
+
+def test_fetch_top_comments_returns_empty_list_when_comments_disabled(monkeypatch):
+    response = MagicMock()
+    response.raise_for_status.side_effect = youtube_collector.requests.RequestException("403 comments disabled")
+    monkeypatch.setattr(youtube_collector.requests, "get", MagicMock(return_value=response))
+
+    result = youtube_collector.fetch_top_comments("fake-api-key", "abc123")
+
+    assert result == []
+
+
+def test_fetch_top_comments_skips_malformed_items(monkeypatch):
+    api_items = [
+        {"snippet": {"topLevelComment": {"snippet": {"textDisplay": "정상 댓글"}}}},
+        {"snippet": {}},
+    ]
+    monkeypatch.setattr(
+        youtube_collector.requests, "get", MagicMock(return_value=_make_response(api_items))
+    )
+
+    result = youtube_collector.fetch_top_comments("fake-api-key", "abc123")
+
+    assert result == ["정상 댓글"]
