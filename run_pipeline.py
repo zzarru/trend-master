@@ -1,3 +1,4 @@
+import os
 import re
 from datetime import datetime
 
@@ -12,6 +13,17 @@ from trend_pipeline import (
     storage,
     youtube_collector,
 )
+
+
+def _list_archive_issues(archive_dir: str, today_str: str) -> list[dict]:
+    """Existing archive dates plus today's, numbered by chronological order."""
+    dates = set()
+    if os.path.isdir(archive_dir):
+        for fname in os.listdir(archive_dir):
+            if fname.endswith(".html") and fname != "index.html":
+                dates.add(fname[:-5])
+    dates.add(today_str)
+    return [{"issue_number": i, "date": d} for i, d in enumerate(sorted(dates), start=1)]
 
 
 def run() -> dict:
@@ -54,17 +66,33 @@ def run() -> dict:
     report_published = False
     slack_notified = False
     try:
-        report_html = report_generator.generate_report(conn, datetime.now().astimezone())
+        now = datetime.now().astimezone()
+        today_str = now.strftime("%Y-%m-%d")
+        archive_dir = os.path.join(os.path.dirname(cfg["report_path"]) or ".", "archive")
+        os.makedirs(archive_dir, exist_ok=True)
+
+        issues = _list_archive_issues(archive_dir, today_str)
+        issue_number = next(i["issue_number"] for i in issues if i["date"] == today_str)
+
+        report_html = report_generator.generate_report(conn, now, issue_number)
         with open(cfg["report_path"], "w", encoding="utf-8") as f:
             f.write(report_html)
 
+        archive_path = os.path.join(archive_dir, f"{today_str}.html")
+        with open(archive_path, "w", encoding="utf-8") as f:
+            f.write(report_html)
+
+        archive_index_path = os.path.join(archive_dir, "index.html")
+        with open(archive_index_path, "w", encoding="utf-8") as f:
+            f.write(report_generator.generate_archive_index(issues))
+
         if cfg["report_base_url"]:
             report_published = git_publisher.publish(
-                [cfg["report_path"]], "chore: update trend report"
+                [cfg["report_path"], archive_path, archive_index_path], "chore: update trend report"
             )
             if report_published and cfg["slack_webhook_url"]:
                 slack_notified = slack_notifier.notify(
-                    cfg["slack_webhook_url"], cfg["report_base_url"]
+                    cfg["slack_webhook_url"], cfg["report_base_url"], issue_number
                 )
     except Exception as exc:
         print(f"리포트 생성/배포 실패: {exc}")

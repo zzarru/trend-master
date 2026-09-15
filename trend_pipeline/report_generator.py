@@ -68,6 +68,14 @@ _PAGE_TEMPLATE = """<title>트렌드위클리</title>
 
   .masthead { text-align: center; padding-bottom: 18px; }
 
+  .masthead .eyebrow {
+    font-family: "Noto Sans KR", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: var(--accent);
+  }
+
   .masthead h1 {
     font-family: "Nanum Myeongjo", "Noto Serif KR", serif;
     font-weight: 800;
@@ -97,6 +105,14 @@ _PAGE_TEMPLATE = """<title>트렌드위클리</title>
     color: var(--ink-faint);
     margin-top: 10px;
     line-height: 1.6;
+  }
+
+  .masthead .archive-link {
+    display: inline-block;
+    margin-top: 6px;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
   }
 
   .tabs {
@@ -259,6 +275,7 @@ _PAGE_TEMPLATE = """<title>트렌드위클리</title>
 
 <div class="sheet">
   <header class="masthead">
+    <div class="eyebrow">__ISSUE_NUMBER__호</div>
     <h1>트렌드위클리</h1>
     <div class="dateline">
       <span>__DATE_RANGE__</span>
@@ -267,6 +284,7 @@ _PAGE_TEMPLATE = """<title>트렌드위클리</title>
     <p class="subhead">
       이번 주 한국 유튜브 인기 급상승 영상을 탭으로 살펴보세요 —
       전체 조회수 TOP 10과, 마케팅 관점 8개 카테고리별 TOP 5.
+      <a class="archive-link" href="archive/">지난 호 보기 →</a>
     </p>
   </header>
 
@@ -377,7 +395,7 @@ def _render_items_section(
     )
 
 
-def generate_report(conn: sqlite3.Connection, now: datetime) -> str:
+def generate_report(conn: sqlite3.Connection, now: datetime, issue_number: int) -> str:
     now_utc = now.astimezone(timezone.utc)
     since = (now_utc - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
 
@@ -404,8 +422,135 @@ def generate_report(conn: sqlite3.Connection, now: datetime) -> str:
 
     return (
         _PAGE_TEMPLATE
+        .replace("__ISSUE_NUMBER__", str(issue_number))
         .replace("__DATE_RANGE__", html.escape(date_range))
         .replace("__TABS__", tabs_html)
         .replace("__SECTIONS__", sections_html)
         .replace("__GENERATED_AT__", html.escape(now.isoformat(timespec="seconds")))
     )
+
+
+_ARCHIVE_INDEX_TEMPLATE = """<title>트렌드위클리 아카이브</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Serif+KR:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --paper: #f2f0e9;
+    --ink: #1d1b17;
+    --ink-soft: #4a463f;
+    --ink-faint: #8a8477;
+    --rule: #cfc9ba;
+    --rule-strong: #1d1b17;
+    --accent: #8c2f27;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #17181a;
+      --ink: #eeece4;
+      --ink-soft: #bcb7a9;
+      --ink-faint: #726d61;
+      --rule: #3a3a37;
+      --rule-strong: #eeece4;
+      --accent: #d9695c;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #17181a;
+    --ink: #eeece4;
+    --ink-soft: #bcb7a9;
+    --ink-faint: #726d61;
+    --rule: #3a3a37;
+    --rule-strong: #eeece4;
+    --accent: #d9695c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Noto Serif KR", Georgia, serif;
+    margin: 0;
+    padding-inline: 20px;
+    padding-block: 36px 64px;
+  }
+
+  .sheet { max-width: 640px; margin-inline: auto; }
+
+  h1 {
+    font-family: "Nanum Myeongjo", "Noto Serif KR", serif;
+    font-weight: 800;
+    font-size: clamp(30px, 8vw, 40px);
+    border-bottom: 3px solid var(--rule-strong);
+    padding-bottom: 14px;
+    margin: 0 0 20px;
+  }
+
+  a.back-link {
+    display: inline-block;
+    margin-bottom: 18px;
+    color: var(--ink-faint);
+    font-family: "Noto Sans KR", sans-serif;
+    font-size: 12.5px;
+    text-decoration: none;
+  }
+
+  ol.issues { list-style: none; margin: 0; padding: 0; }
+
+  ol.issues li {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .issue-no {
+    font-family: "Nanum Myeongjo", serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .issue-link {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .empty-note {
+    font-family: "Noto Serif KR", serif;
+    font-style: italic;
+    color: var(--ink-faint);
+    font-size: 14px;
+  }
+</style>
+
+<div class="sheet">
+  <a class="back-link" href="../">← 최신 리포트로 돌아가기</a>
+  <h1>트렌드위클리 아카이브</h1>
+__ISSUES__
+</div>
+"""
+
+
+def generate_archive_index(issues: list[dict]) -> str:
+    """issues: list of {"issue_number": int, "date": "YYYY-MM-DD"}, any order."""
+    ordered = sorted(issues, key=lambda i: i["issue_number"], reverse=True)
+
+    if not ordered:
+        body = '  <p class="empty-note">발행된 리포트가 없습니다.</p>'
+    else:
+        rows = "\n".join(
+            f"""    <li>
+      <span class="issue-no">{issue['issue_number']}호</span>
+      <a class="issue-link" href="{html.escape(issue['date'])}.html">{html.escape(issue['date'])}</a>
+    </li>"""
+            for issue in ordered
+        )
+        body = f'  <ol class="issues">\n{rows}\n  </ol>'
+
+    return _ARCHIVE_INDEX_TEMPLATE.replace("__ISSUES__", body)
