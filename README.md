@@ -17,7 +17,7 @@
   → 슬랙 알림 발송 (SLACK_WEBHOOK_URL 설정 시)
 ```
 
-스케줄링 없이 **수동 실행**으로 동작한다 (`python run_pipeline.py` 또는 `/auto-report` 스킬).
+**매일 오전 8시(KST)** GitHub Actions로 자동 실행되며, 필요할 때는 `python run_pipeline.py` 또는 `/auto-report` 스킬로 수동 실행도 가능하다.
 
 ## 시작하기
 
@@ -68,6 +68,14 @@ python run_pipeline.py
 리포트 배포: 성공
 슬랙 알림: 성공
 ```
+
+## 자동 실행 (GitHub Actions)
+
+`.github/workflows/daily-report.yml`이 매일 오전 8시(KST, cron `0 23 * * *` UTC)에 파이프라인을 자동 실행한다.
+
+- 필요한 API 키는 저장소 Settings → Secrets and variables → Actions에 등록돼 있어야 한다 (`YOUTUBE_API_KEY`, `ANTHROPIC_API_KEY`, `REPORT_BASE_URL`, `SLACK_WEBHOOK_URL`)
+- Actions 탭에서 워크플로를 수동으로도 실행할 수 있다 (`workflow_dispatch`)
+- 실행 전 `pytest -q`를 먼저 돌려서, 테스트가 깨진 상태의 코드가 자동으로 리포트를 배포하지 않도록 막는다
 
 ## 테스트
 
