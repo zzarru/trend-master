@@ -2,21 +2,23 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Reddit과 RSS 피드에서 반응이 급등한 트렌드 콘텐츠를 수집하고, Claude API로 핵심 키워드를 추출해 SQLite에 저장하는 수동 실행 파이프라인을 만든다.
+**Goal:** 유튜브 인기 급상승(KR) 동영상을 수집하고, Claude API로 핵심 키워드를 추출해 SQLite에 저장하는 수동 실행 파이프라인을 만든다.
 
-**Architecture:** `reddit_collector.py`, `rss_collector.py`가 각각 독립적으로 원본 콘텐츠를 수집하고, `keyword_extractor.py`가 Claude API로 키워드를 뽑고, `storage.py`가 SQLite에 저장한다. `run_pipeline.py`가 이 네 모듈을 순서대로 호출하는 단일 진입점이다. 모든 외부 API 호출부는 테스트에서 mock으로 대체 가능하도록 클라이언트 객체를 인자로 주입받는 구조로 만든다.
+**Architecture:** `youtube_collector.py`가 유튜브 데이터 API로 원본 콘텐츠를 수집하고, `keyword_extractor.py`가 Claude API로 키워드를 뽑고, `storage.py`가 SQLite에 저장한다. `run_pipeline.py`가 이 세 모듈을 순서대로 호출하는 단일 진입점이다. 모든 외부 API 호출부는 테스트에서 mock으로 대체 가능하도록 클라이언트 객체를 인자로 주입받는 구조로 만든다.
 
-**Tech Stack:** Python 3.11+, praw (Reddit API), feedparser (RSS), anthropic (Claude API), sqlite3 (표준 라이브러리), pytest, python-dotenv
+**Tech Stack:** Python 3.11+, requests (YouTube Data API), anthropic (Claude API), sqlite3 (표준 라이브러리), pytest, python-dotenv
 
 **Spec:** `docs/superpowers/specs/2026-09-15-mvp-trend-collection-pipeline-design.md`
 
 ## Global Constraints
 
-- 무료 API만 사용 (Reddit 개인용 앱 등록, X·인스타그램 API는 사용하지 않음)
+- 무료 API만 사용 (유튜브 데이터 API 무료 쿼터 내에서만 사용)
 - 수집·저장 로직은 실제 네트워크 호출 없이 함수 단위로 테스트 가능해야 함 (외부 클라이언트는 인자로 주입, 테스트에서 mock)
-- 한쪽 데이터 소스(Reddit 또는 RSS)가 실패해도 다른 쪽 수집과 전체 파이프라인은 계속 진행되어야 함
+- 수집 실패 시 파이프라인은 중단하지 않고 빈 목록으로 처리하며 끝까지 진행되어야 함
 - 실행 끝에 반드시 수집/추출 결과 건수를 콘솔에 출력해야 함 (완료 주장이 실제 수치로 뒷받침되어야 함)
 - 스케줄링 없음 — 수동 실행 스크립트로만 동작
+
+> **⚠️ 2026-09-15 플랜 개정**: 원래 Task 1-7은 Reddit + RSS를 MVP 데이터 소스로 가정하고 작성됐다. 구현(Task 1-6) 완료 후, 사용자가 한국 시장 중심 트렌드 파악에는 Reddit이 적합하지 않다고 판단해 유튜브 인기 급상승(KR) 단일 소스로 전환하기로 결정했다 — 네이버 데이터랩도 검토했으나 "발견" 도구가 아니라(사전 키워드 필요) 제외했다. Task 1(config), 2(storage), 5(keyword_extractor)는 그대로 유효하다. **Task 3(Reddit 수집기)와 Task 4(RSS 수집기)는 폐기**하고, 아래 **Task 8**이 그 자리를 대신한다. **Task 6(파이프라인 진입점)은 아래 **Task 9**로 재배선한다. Task 7(수동 통합 확인)은 유튜브 API 키 발급 기준으로 다시 수행한다.
 
 ---
 
@@ -935,18 +937,18 @@ __pycache__/
 Run: `pip install -r requirements.txt`
 Expected: 설치 성공
 
-- [ ] **Step 3: Reddit 앱 등록 및 .env 채우기**
+- [ ] **Step 3: 유튜브 데이터 API 키 발급 및 .env 채우기** *(2026-09-15 개정: Reddit 대신 유튜브로 전환)*
 
-1. https://www.reddit.com/prefs/apps 접속 (Reddit 로그인 필요)
-2. "create another app" 클릭 → type은 "script" 선택
-3. 발급된 client id(앱 이름 아래 문자열)와 secret을 `.env`의 `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`에 입력
-4. `REDDIT_USER_AGENT`에 `trend-pipeline-mvp/0.1 by <본인 reddit 계정명>` 형식으로 입력
+1. https://console.cloud.google.com/ 접속 → 새 프로젝트 생성(또는 기존 프로젝트 선택)
+2. "API 및 서비스" → "라이브러리"에서 "YouTube Data API v3" 검색 후 사용 설정
+3. "사용자 인증 정보"에서 API 키 발급
+4. 발급된 키를 `.env`의 `YOUTUBE_API_KEY`에 입력
 5. Anthropic 콘솔에서 API 키 발급 후 `ANTHROPIC_API_KEY`에 입력
 
 - [ ] **Step 4: 실제 파이프라인 1회 실행**
 
 Run: `python run_pipeline.py`
-Expected: 콘솔에 `Reddit 수집: N건`, `RSS 수집: M건`, `키워드 추출: 성공 K건 / 실패 F건` 형태의 요약이 출력되고, 모든 값이 실제 숫자로 채워짐 (0건이 나오면 서브레딧/피드 목록이나 API 키 설정을 재확인)
+Expected: 콘솔에 `유튜브 수집: N건`, `키워드 추출: 성공 K건 / 실패 F건` 형태의 요약이 출력되고, 모든 값이 실제 숫자로 채워짐 (0건이 나오면 API 키 설정을 재확인)
 
 - [ ] **Step 5: DB에 데이터가 쌓였는지 확인**
 
@@ -958,4 +960,429 @@ Expected: 두 카운트 모두 0보다 큰 값
 ```bash
 git add .gitignore
 git commit -m "chore: ignore local env and db files"
+```
+
+---
+
+## Task 8: Reddit·RSS 수집기를 유튜브 수집기로 교체 *(2026-09-15 개정)*
+
+**Files:**
+- Delete: `trend_pipeline/reddit_collector.py`, `tests/test_reddit_collector.py`
+- Delete: `trend_pipeline/rss_collector.py`, `tests/test_rss_collector.py`
+- Create: `trend_pipeline/youtube_collector.py`
+- Test: `tests/test_youtube_collector.py`
+- Modify: `trend_pipeline/config.py` (Reddit/RSS 설정 제거, 유튜브 설정 추가)
+- Modify: `tests/test_config.py` (Reddit/RSS 관련 검증 제거, 유튜브 관련 검증 추가)
+- Modify: `requirements.txt` (praw, feedparser 제거 → requests 추가)
+- Modify: `.env.example` (REDDIT_* 제거 → YOUTUBE_API_KEY 추가)
+
+**Interfaces:**
+- Consumes: 없음 (requests를 모듈 레벨에서 import해서 테스트에서 monkeypatch)
+- Produces: `trend_pipeline.youtube_collector.collect_youtube_trending(api_key: str, region_code: str = "KR", max_results: int = 25) -> list[dict]` — 반환 dict는 storage `item` 형식과 동일 키(`source="youtube"`, `source_id`, `title`, `body`, `url`, `score`, `num_comments`, `published_at`). `score`는 조회수(viewCount), `num_comments`는 댓글 수(commentCount)를 정수로 담는다. 통계 필드가 없으면 0으로 처리한다.
+- `trend_pipeline.config.load_config() -> dict` — 반환 키가 `reddit_client_id`/`reddit_client_secret`/`reddit_user_agent`/`subreddits`/`rss_feeds` 대신 `youtube_api_key`/`region_code`/`max_results`로 바뀐다. `anthropic_api_key`, `db_path`는 그대로 유지.
+
+- [ ] **Step 1: 기존 Reddit/RSS 파일 삭제**
+
+```bash
+git rm trend_pipeline/reddit_collector.py tests/test_reddit_collector.py
+git rm trend_pipeline/rss_collector.py tests/test_rss_collector.py
+```
+
+- [ ] **Step 2: 실패하는 테스트 작성 (유튜브 수집기)**
+
+`tests/test_youtube_collector.py`:
+
+```python
+from unittest.mock import MagicMock
+
+from trend_pipeline import youtube_collector
+
+
+def _make_response(items):
+    response = MagicMock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {"items": items}
+    return response
+
+
+def test_collect_youtube_trending_builds_items_from_api_response(monkeypatch):
+    api_items = [
+        {
+            "id": "abc123",
+            "snippet": {
+                "title": "Trending Video",
+                "description": "some description",
+                "publishedAt": "2026-09-15T00:00:00Z",
+            },
+            "statistics": {"viewCount": "150000", "commentCount": "320"},
+        }
+    ]
+    mock_get = MagicMock(return_value=_make_response(api_items))
+    monkeypatch.setattr(youtube_collector.requests, "get", mock_get)
+
+    result = youtube_collector.collect_youtube_trending("fake-api-key", region_code="KR", max_results=25)
+
+    assert len(result) == 1
+    item = result[0]
+    assert item["source"] == "youtube"
+    assert item["source_id"] == "abc123"
+    assert item["title"] == "Trending Video"
+    assert item["body"] == "some description"
+    assert item["url"] == "https://www.youtube.com/watch?v=abc123"
+    assert item["score"] == 150000
+    assert item["num_comments"] == 320
+    assert item["published_at"] == "2026-09-15T00:00:00Z"
+
+    mock_get.assert_called_once()
+    call_kwargs = mock_get.call_args.kwargs
+    assert call_kwargs["params"]["regionCode"] == "KR"
+    assert call_kwargs["params"]["maxResults"] == 25
+    assert call_kwargs["params"]["chart"] == "mostPopular"
+    assert call_kwargs["params"]["key"] == "fake-api-key"
+
+
+def test_collect_youtube_trending_handles_missing_statistics_gracefully(monkeypatch):
+    api_items = [
+        {
+            "id": "noStats",
+            "snippet": {"title": "No stats video"},
+        }
+    ]
+    monkeypatch.setattr(youtube_collector.requests, "get", MagicMock(return_value=_make_response(api_items)))
+
+    result = youtube_collector.collect_youtube_trending("fake-api-key")
+
+    assert result[0]["score"] == 0
+    assert result[0]["num_comments"] == 0
+    assert result[0]["body"] == ""
+    assert result[0]["published_at"] == ""
+```
+
+- [ ] **Step 3: 테스트 실행하여 실패 확인**
+
+Run: `python -m pytest tests/test_youtube_collector.py -v`
+Expected: FAIL — `ModuleNotFoundError: No module named 'trend_pipeline.youtube_collector'`
+
+- [ ] **Step 4: 최소 구현 작성 (유튜브 수집기)**
+
+`trend_pipeline/youtube_collector.py`:
+
+```python
+import requests
+
+YOUTUBE_API_URL = "https://www.googleapis.com/youtube/v3/videos"
+
+
+def collect_youtube_trending(api_key: str, region_code: str = "KR", max_results: int = 25) -> list[dict]:
+    params = {
+        "part": "snippet,statistics",
+        "chart": "mostPopular",
+        "regionCode": region_code,
+        "maxResults": max_results,
+        "key": api_key,
+    }
+    response = requests.get(YOUTUBE_API_URL, params=params, timeout=10)
+    response.raise_for_status()
+    data = response.json()
+
+    items = []
+    for video in data.get("items", []):
+        snippet = video.get("snippet", {})
+        statistics = video.get("statistics", {})
+        items.append(
+            {
+                "source": "youtube",
+                "source_id": video["id"],
+                "title": snippet.get("title", ""),
+                "body": snippet.get("description", ""),
+                "url": f"https://www.youtube.com/watch?v={video['id']}",
+                "score": int(statistics.get("viewCount", 0)),
+                "num_comments": int(statistics.get("commentCount", 0)),
+                "published_at": snippet.get("publishedAt", ""),
+            }
+        )
+    return items
+```
+
+- [ ] **Step 5: 테스트 실행하여 통과 확인**
+
+Run: `python -m pytest tests/test_youtube_collector.py -v`
+Expected: PASS (2 passed)
+
+- [ ] **Step 6: config.py를 유튜브 설정으로 교체**
+
+`trend_pipeline/config.py` 전체를 다음으로 교체:
+
+```python
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+DEFAULT_REGION_CODE = "KR"
+DEFAULT_MAX_RESULTS = 25
+
+_REQUIRED_ENV_VARS = ["YOUTUBE_API_KEY", "ANTHROPIC_API_KEY"]
+
+
+def load_config() -> dict:
+    missing = [name for name in _REQUIRED_ENV_VARS if not os.environ.get(name)]
+    if missing:
+        raise ValueError(f"Missing required environment variables: {', '.join(missing)}")
+
+    return {
+        "youtube_api_key": os.environ["YOUTUBE_API_KEY"],
+        "anthropic_api_key": os.environ["ANTHROPIC_API_KEY"],
+        "region_code": os.environ.get("YOUTUBE_REGION_CODE", DEFAULT_REGION_CODE),
+        "max_results": int(os.environ.get("YOUTUBE_MAX_RESULTS", DEFAULT_MAX_RESULTS)),
+        "db_path": os.environ.get("TREND_PIPELINE_DB_PATH", "trend_pipeline.db"),
+    }
+```
+
+- [ ] **Step 7: test_config.py를 유튜브 설정 검증으로 교체**
+
+`tests/test_config.py` 전체를 다음으로 교체:
+
+```python
+from trend_pipeline import config
+
+
+def test_load_config_reads_env_and_applies_defaults(monkeypatch):
+    monkeypatch.setenv("YOUTUBE_API_KEY", "test-youtube-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.delenv("YOUTUBE_REGION_CODE", raising=False)
+    monkeypatch.delenv("YOUTUBE_MAX_RESULTS", raising=False)
+    monkeypatch.delenv("TREND_PIPELINE_DB_PATH", raising=False)
+
+    cfg = config.load_config()
+
+    assert cfg["youtube_api_key"] == "test-youtube-key"
+    assert cfg["anthropic_api_key"] == "test-key"
+    assert cfg["region_code"] == config.DEFAULT_REGION_CODE
+    assert cfg["max_results"] == config.DEFAULT_MAX_RESULTS
+    assert cfg["db_path"] == "trend_pipeline.db"
+
+
+def test_load_config_raises_when_required_keys_missing(monkeypatch):
+    monkeypatch.delenv("YOUTUBE_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+    import pytest
+    with pytest.raises(ValueError, match="YOUTUBE_API_KEY"):
+        config.load_config()
+```
+
+- [ ] **Step 8: requirements.txt 교체**
+
+`requirements.txt`:
+
+```text
+requests>=2.31,<3
+anthropic>=0.40,<1
+python-dotenv>=1.0,<2
+pytest>=8.0,<9
+```
+
+- [ ] **Step 9: .env.example 교체**
+
+`.env.example`:
+
+```text
+YOUTUBE_API_KEY=
+ANTHROPIC_API_KEY=
+```
+
+- [ ] **Step 10: 전체 테스트 스위트 실행**
+
+Run: `python -m pytest -v`
+Expected: PASS — Reddit/RSS 관련 테스트는 더 이상 존재하지 않고, config + storage + keyword_extractor + youtube_collector 테스트만 통과 (기존 run_pipeline 테스트는 Task 9에서 다시 맞출 때까지 실패할 수 있음 — 이 스텝에서는 `tests/test_run_pipeline.py`를 제외하고 실행: `python -m pytest -v --ignore=tests/test_run_pipeline.py`)
+
+- [ ] **Step 11: 커밋**
+
+```bash
+git add -A trend_pipeline tests requirements.txt .env.example
+git commit -m "feat: replace Reddit/RSS collectors with YouTube trending collector"
+```
+
+---
+
+## Task 9: 파이프라인 진입점을 유튜브 수집기로 재배선 *(2026-09-15 개정)*
+
+**Files:**
+- Modify: `run_pipeline.py`
+- Modify: `tests/test_run_pipeline.py`
+
+**Interfaces:**
+- Consumes:
+  - `trend_pipeline.config.load_config() -> dict` (Task 8에서 개정된 키: `youtube_api_key`, `anthropic_api_key`, `region_code`, `max_results`, `db_path`)
+  - `trend_pipeline.youtube_collector.collect_youtube_trending(api_key, region_code, max_results) -> list[dict]`
+  - `trend_pipeline.storage.init_db(db_path) -> sqlite3.Connection`
+  - `trend_pipeline.storage.save_content(conn, item) -> int | None`
+  - `trend_pipeline.storage.save_keywords(conn, content_id, keywords, usage_context) -> None`
+  - `trend_pipeline.keyword_extractor.extract_keywords_batch(client, content_items) -> list[dict]`
+- Produces: `run_pipeline.run() -> dict` — 반환값 `{"youtube_collected": int, "keywords_success": int, "keywords_failed": int}`. 표준 출력에 동일 내용을 사람이 읽기 쉬운 형태로 출력. 유튜브 수집이 예외를 던져도 `run()`은 예외를 전파하지 않고 `youtube_collected: 0`으로 계속 진행해 요약까지 출력한다.
+
+- [ ] **Step 1: 실패하는 테스트 작성 (run_pipeline.py 전체 교체)**
+
+`tests/test_run_pipeline.py` 전체를 다음으로 교체:
+
+```python
+from unittest.mock import MagicMock, patch
+
+import run_pipeline
+
+
+@patch("run_pipeline.keyword_extractor.extract_keywords_batch")
+@patch("run_pipeline.youtube_collector.collect_youtube_trending")
+@patch("run_pipeline.config.load_config")
+def test_run_collects_saves_and_returns_summary(
+    mock_load_config, mock_collect_youtube, mock_extract_batch
+):
+    mock_load_config.return_value = {
+        "youtube_api_key": "yt-key",
+        "anthropic_api_key": "key",
+        "region_code": "KR",
+        "max_results": 25,
+        "db_path": ":memory:",
+    }
+    mock_collect_youtube.return_value = [
+        {
+            "source": "youtube",
+            "source_id": "v1",
+            "title": "YouTube Trend",
+            "body": "body",
+            "url": "https://www.youtube.com/watch?v=v1",
+            "score": 1000,
+            "num_comments": 20,
+            "published_at": "2026-09-15T00:00:00",
+        }
+    ]
+    mock_extract_batch.return_value = [
+        {
+            "content_item": mock_collect_youtube.return_value[0],
+            "keywords": ["trend"],
+            "usage_context": "ctx",
+            "success": True,
+        }
+    ]
+
+    with patch("run_pipeline.Anthropic") as mock_anthropic_cls:
+        mock_anthropic_cls.return_value = MagicMock()
+        summary = run_pipeline.run()
+
+    assert summary == {
+        "youtube_collected": 1,
+        "keywords_success": 1,
+        "keywords_failed": 0,
+    }
+    mock_collect_youtube.assert_called_once_with("yt-key", region_code="KR", max_results=25)
+
+
+@patch("run_pipeline.keyword_extractor.extract_keywords_batch")
+@patch("run_pipeline.youtube_collector.collect_youtube_trending")
+@patch("run_pipeline.config.load_config")
+def test_run_continues_when_youtube_collection_fails(
+    mock_load_config, mock_collect_youtube, mock_extract_batch
+):
+    mock_load_config.return_value = {
+        "youtube_api_key": "yt-key",
+        "anthropic_api_key": "key",
+        "region_code": "KR",
+        "max_results": 25,
+        "db_path": ":memory:",
+    }
+    mock_collect_youtube.side_effect = RuntimeError("quota exceeded")
+    mock_extract_batch.return_value = []
+
+    with patch("run_pipeline.Anthropic") as mock_anthropic_cls:
+        mock_anthropic_cls.return_value = MagicMock()
+        summary = run_pipeline.run()
+
+    assert summary == {
+        "youtube_collected": 0,
+        "keywords_success": 0,
+        "keywords_failed": 0,
+    }
+```
+
+- [ ] **Step 2: 테스트 실행하여 실패 확인**
+
+Run: `python -m pytest tests/test_run_pipeline.py -v`
+Expected: FAIL — `AttributeError: <module 'run_pipeline'> does not have the attribute 'youtube_collector'` (또는 기존 reddit/rss mock 대상이 없어 에러)
+
+- [ ] **Step 3: run_pipeline.py 전체 교체**
+
+`run_pipeline.py`:
+
+```python
+from anthropic import Anthropic
+
+from trend_pipeline import config, keyword_extractor, storage, youtube_collector
+
+
+def run() -> dict:
+    cfg = config.load_config()
+
+    try:
+        youtube_items = youtube_collector.collect_youtube_trending(
+            cfg["youtube_api_key"], region_code=cfg["region_code"], max_results=cfg["max_results"]
+        )
+    except Exception as exc:
+        print(f"유튜브 수집 실패: {exc}")
+        youtube_items = []
+
+    conn = storage.init_db(cfg["db_path"])
+
+    new_items = []
+    for item in youtube_items:
+        content_id = storage.save_content(conn, item)
+        if content_id is not None:
+            new_items.append((content_id, item))
+
+    anthropic_client = Anthropic(api_key=cfg["anthropic_api_key"])
+    extraction_results = keyword_extractor.extract_keywords_batch(
+        anthropic_client, [item for _, item in new_items]
+    )
+
+    keywords_success = 0
+    keywords_failed = 0
+    for (content_id, _), result in zip(new_items, extraction_results):
+        if result["success"]:
+            storage.save_keywords(conn, content_id, result["keywords"], result["usage_context"])
+            keywords_success += 1
+        else:
+            keywords_failed += 1
+
+    summary = {
+        "youtube_collected": len(youtube_items),
+        "keywords_success": keywords_success,
+        "keywords_failed": keywords_failed,
+    }
+
+    print(f"유튜브 수집: {summary['youtube_collected']}건")
+    print(f"키워드 추출: 성공 {summary['keywords_success']}건 / 실패 {summary['keywords_failed']}건")
+
+    return summary
+
+
+if __name__ == "__main__":
+    run()
+```
+
+- [ ] **Step 4: 테스트 실행하여 통과 확인**
+
+Run: `python -m pytest tests/test_run_pipeline.py -v`
+Expected: PASS (2 passed)
+
+- [ ] **Step 5: 전체 테스트 스위트 실행**
+
+Run: `python -m pytest -v`
+Expected: PASS (모든 테스트 통과, Reddit/RSS 관련 테스트는 존재하지 않음)
+
+- [ ] **Step 6: 커밋**
+
+```bash
+git add run_pipeline.py tests/test_run_pipeline.py
+git commit -m "feat: rewire pipeline entrypoint to use YouTube collector only"
 ```
