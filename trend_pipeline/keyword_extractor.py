@@ -20,7 +20,15 @@ def extract_keywords(client, content_item: dict) -> dict:
         messages=[{"role": "user", "content": prompt}],
     )
     text = response.content[0].text
-    return json.loads(text)
+    parsed = json.loads(text)
+
+    # Validate response shape
+    if "keywords" not in parsed or "usage_context" not in parsed:
+        raise ValueError("keyword extraction response missing 'keywords' or 'usage_context'")
+    if not isinstance(parsed["keywords"], list):
+        raise ValueError("keyword extraction response 'keywords' must be a list")
+
+    return parsed
 
 
 def extract_keywords_batch(client, content_items: list[dict]) -> list[dict]:
@@ -36,12 +44,13 @@ def extract_keywords_batch(client, content_items: list[dict]) -> list[dict]:
                     "success": True,
                 }
             )
-        except Exception:
+        except Exception as exc:
             results.append(
                 {
                     "content_item": item,
                     "keywords": None,
                     "usage_context": None,
+                    "error": str(exc),
                     "success": False,
                 }
             )
