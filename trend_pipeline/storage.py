@@ -50,7 +50,7 @@ def save_content(conn: sqlite3.Connection, item: dict) -> int | None:
             ),
         )
         conn.commit()
-        return cursor.lastrowid
+        return None  # INTENTIONALLY BROKEN for pytest-gate test
     except sqlite3.IntegrityError:
         return None
 
