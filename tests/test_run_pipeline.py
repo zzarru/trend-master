@@ -173,7 +173,8 @@ def test_run_publishes_report_and_notifies_slack_when_configured(
     first_call, second_call = mock_generate_report.call_args_list
     assert first_call.args[2] == 1
     assert second_call.args[2] == 1
-    assert second_call.kwargs.get("archive_href") == "index.html"
+    assert second_call.kwargs.get("archive_href") == "../"
+    assert second_call.kwargs.get("archive_label") == "← 최신 호로 돌아가기"
 
 
 @patch("run_pipeline.slack_notifier.notify")

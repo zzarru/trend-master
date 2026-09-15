@@ -79,7 +79,7 @@ def run() -> dict:
             f.write(report_html)
 
         archive_report_html = report_generator.generate_report(
-            conn, now, issue_number, archive_href="index.html"
+            conn, now, issue_number, archive_href="../", archive_label="← 최신 호로 돌아가기"
         )
         archive_path = os.path.join(archive_dir, f"{today_str}.html")
         with open(archive_path, "w", encoding="utf-8") as f:

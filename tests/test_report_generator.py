@@ -247,6 +247,19 @@ def test_generate_report_archive_link_is_relative_to_archive_dir_when_overridden
     assert 'href="archive/"' not in masthead
 
 
+def test_generate_report_archive_label_is_overridable():
+    conn = storage.init_db(":memory:")
+
+    html_out = report_generator.generate_report(
+        conn, datetime(2026, 9, 15, 12, 0, 0), issue_number=1,
+        archive_href="../", archive_label="← 최신 호로 돌아가기",
+    )
+
+    masthead = html_out.split('class="masthead"')[1].split("</header>")[0]
+    assert "← 최신 호로 돌아가기" in masthead
+    assert "지난 호 보기" not in masthead
+
+
 def test_generate_archive_index_lists_issues_newest_first():
     issues = [
         {"issue_number": 1, "date": "2026-09-15"},
