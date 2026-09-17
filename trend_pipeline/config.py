@@ -25,4 +25,6 @@ def load_config() -> dict:
         "report_path": os.environ.get("TREND_PIPELINE_REPORT_PATH", DEFAULT_REPORT_PATH),
         "report_base_url": os.environ.get("REPORT_BASE_URL", ""),
         "slack_webhook_url": os.environ.get("SLACK_WEBHOOK_URL", ""),
+        "github_token": os.environ.get("GITHUB_TOKEN", ""),
+        "github_repository": os.environ.get("GITHUB_REPOSITORY", ""),
     }

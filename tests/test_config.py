@@ -52,3 +52,27 @@ def test_load_config_reads_report_and_slack_overrides(monkeypatch):
     assert cfg["report_path"] == "out/report.html"
     assert cfg["report_base_url"] == "https://user.github.io/repo/"
     assert cfg["slack_webhook_url"] == "https://hooks.slack.com/services/x"
+
+
+def test_load_config_applies_github_defaults(monkeypatch):
+    monkeypatch.setenv("YOUTUBE_API_KEY", "test-youtube-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
+
+    cfg = config.load_config()
+
+    assert cfg["github_token"] == ""
+    assert cfg["github_repository"] == ""
+
+
+def test_load_config_reads_github_overrides(monkeypatch):
+    monkeypatch.setenv("YOUTUBE_API_KEY", "test-youtube-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.setenv("GITHUB_TOKEN", "gh-token")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "user/repo")
+
+    cfg = config.load_config()
+
+    assert cfg["github_token"] == "gh-token"
+    assert cfg["github_repository"] == "user/repo"

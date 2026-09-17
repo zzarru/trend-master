@@ -165,7 +165,7 @@ def test_run_publishes_report_and_notifies_slack_when_configured(
         [str(report_path), str(archive_path), str(archive_index_path)], "chore: update trend report"
     )
     mock_notify.assert_called_once_with(
-        "https://hooks.slack.com/services/x", "https://user.github.io/repo/", 1
+        "https://hooks.slack.com/services/x", "https://user.github.io/repo/", 1, build_confirmed=True
     )
     # Called twice: once for docs/index.html (default archive_href), once for
     # the archived copy (archive_href="index.html", since it lives one level deeper).
@@ -286,7 +286,139 @@ def test_run_increments_issue_number_based_on_existing_archive_dates(
 
     assert mock_generate_report.call_args.args[2] == 2
     mock_notify.assert_called_once_with(
-        "https://hooks.slack.com/services/x", "https://user.github.io/repo/", 2
+        "https://hooks.slack.com/services/x", "https://user.github.io/repo/", 2, build_confirmed=True
+    )
+
+
+@patch("run_pipeline.pages_checker.wait_for_build")
+@patch("run_pipeline.git_publisher.get_head_sha")
+@patch("run_pipeline.slack_notifier.notify")
+@patch("run_pipeline.git_publisher.publish")
+@patch("run_pipeline.report_generator.generate_report")
+@patch("run_pipeline.content_analyzer.analyze_content_batch")
+@patch("run_pipeline.youtube_collector.fetch_top_comments")
+@patch("run_pipeline.youtube_collector.collect_youtube_trending")
+@patch("run_pipeline.config.load_config")
+def test_run_waits_for_pages_build_before_notifying_when_github_env_present(
+    mock_load_config, mock_collect_youtube, mock_fetch_comments, mock_analyze_batch,
+    mock_generate_report, mock_publish, mock_notify, mock_get_head_sha, mock_wait_for_build, tmp_path,
+):
+    report_path = tmp_path / "index.html"
+    mock_load_config.return_value = {
+        "youtube_api_key": "yt-key",
+        "anthropic_api_key": "key",
+        "region_code": "KR",
+        "max_results": 25,
+        "db_path": ":memory:",
+        "report_path": str(report_path),
+        "report_base_url": "https://user.github.io/repo/",
+        "slack_webhook_url": "https://hooks.slack.com/services/x",
+        "github_repository": "user/repo",
+        "github_token": "gh-token",
+    }
+    mock_collect_youtube.return_value = []
+    mock_analyze_batch.return_value = []
+    mock_generate_report.return_value = "<html>report</html>"
+    mock_publish.return_value = True
+    mock_get_head_sha.return_value = "abc123"
+    mock_wait_for_build.return_value = True
+    mock_notify.return_value = True
+
+    with patch("run_pipeline.Anthropic") as mock_anthropic_cls:
+        mock_anthropic_cls.return_value = MagicMock()
+        summary = run_pipeline.run()
+
+    mock_get_head_sha.assert_called_once_with()
+    mock_wait_for_build.assert_called_once_with("user/repo", "gh-token", "abc123")
+    mock_notify.assert_called_once_with(
+        "https://hooks.slack.com/services/x", "https://user.github.io/repo/", 1, build_confirmed=True
+    )
+    assert summary["slack_notified"] is True
+
+
+@patch("run_pipeline.pages_checker.wait_for_build")
+@patch("run_pipeline.git_publisher.get_head_sha")
+@patch("run_pipeline.slack_notifier.notify")
+@patch("run_pipeline.git_publisher.publish")
+@patch("run_pipeline.report_generator.generate_report")
+@patch("run_pipeline.content_analyzer.analyze_content_batch")
+@patch("run_pipeline.youtube_collector.fetch_top_comments")
+@patch("run_pipeline.youtube_collector.collect_youtube_trending")
+@patch("run_pipeline.config.load_config")
+def test_run_notifies_with_build_unconfirmed_when_pages_build_times_out(
+    mock_load_config, mock_collect_youtube, mock_fetch_comments, mock_analyze_batch,
+    mock_generate_report, mock_publish, mock_notify, mock_get_head_sha, mock_wait_for_build, tmp_path,
+):
+    report_path = tmp_path / "index.html"
+    mock_load_config.return_value = {
+        "youtube_api_key": "yt-key",
+        "anthropic_api_key": "key",
+        "region_code": "KR",
+        "max_results": 25,
+        "db_path": ":memory:",
+        "report_path": str(report_path),
+        "report_base_url": "https://user.github.io/repo/",
+        "slack_webhook_url": "https://hooks.slack.com/services/x",
+        "github_repository": "user/repo",
+        "github_token": "gh-token",
+    }
+    mock_collect_youtube.return_value = []
+    mock_analyze_batch.return_value = []
+    mock_generate_report.return_value = "<html>report</html>"
+    mock_publish.return_value = True
+    mock_get_head_sha.return_value = "abc123"
+    mock_wait_for_build.return_value = False
+    mock_notify.return_value = True
+
+    with patch("run_pipeline.Anthropic") as mock_anthropic_cls:
+        mock_anthropic_cls.return_value = MagicMock()
+        run_pipeline.run()
+
+    mock_notify.assert_called_once_with(
+        "https://hooks.slack.com/services/x", "https://user.github.io/repo/", 1, build_confirmed=False
+    )
+
+
+@patch("run_pipeline.pages_checker.wait_for_build")
+@patch("run_pipeline.git_publisher.get_head_sha")
+@patch("run_pipeline.slack_notifier.notify")
+@patch("run_pipeline.git_publisher.publish")
+@patch("run_pipeline.report_generator.generate_report")
+@patch("run_pipeline.content_analyzer.analyze_content_batch")
+@patch("run_pipeline.youtube_collector.fetch_top_comments")
+@patch("run_pipeline.youtube_collector.collect_youtube_trending")
+@patch("run_pipeline.config.load_config")
+def test_run_skips_pages_build_check_when_github_env_missing(
+    mock_load_config, mock_collect_youtube, mock_fetch_comments, mock_analyze_batch,
+    mock_generate_report, mock_publish, mock_notify, mock_get_head_sha, mock_wait_for_build, tmp_path,
+):
+    report_path = tmp_path / "index.html"
+    mock_load_config.return_value = {
+        "youtube_api_key": "yt-key",
+        "anthropic_api_key": "key",
+        "region_code": "KR",
+        "max_results": 25,
+        "db_path": ":memory:",
+        "report_path": str(report_path),
+        "report_base_url": "https://user.github.io/repo/",
+        "slack_webhook_url": "https://hooks.slack.com/services/x",
+        "github_repository": "",
+        "github_token": "",
+    }
+    mock_collect_youtube.return_value = []
+    mock_analyze_batch.return_value = []
+    mock_generate_report.return_value = "<html>report</html>"
+    mock_publish.return_value = True
+    mock_notify.return_value = True
+
+    with patch("run_pipeline.Anthropic") as mock_anthropic_cls:
+        mock_anthropic_cls.return_value = MagicMock()
+        run_pipeline.run()
+
+    mock_get_head_sha.assert_not_called()
+    mock_wait_for_build.assert_not_called()
+    mock_notify.assert_called_once_with(
+        "https://hooks.slack.com/services/x", "https://user.github.io/repo/", 1, build_confirmed=True
     )
 
 

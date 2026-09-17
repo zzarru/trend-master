@@ -8,6 +8,7 @@ from trend_pipeline import (
     config,
     content_analyzer,
     git_publisher,
+    pages_checker,
     report_generator,
     slack_notifier,
     storage,
@@ -94,8 +95,17 @@ def run() -> dict:
                 [cfg["report_path"], archive_path, archive_index_path], "chore: update trend report"
             )
             if report_published and cfg["slack_webhook_url"]:
+                build_confirmed = True
+                github_repository = cfg.get("github_repository", "")
+                github_token = cfg.get("github_token", "")
+                if github_repository and github_token:
+                    commit_sha = git_publisher.get_head_sha()
+                    build_confirmed = pages_checker.wait_for_build(
+                        github_repository, github_token, commit_sha
+                    )
                 slack_notified = slack_notifier.notify(
-                    cfg["slack_webhook_url"], cfg["report_base_url"], issue_number
+                    cfg["slack_webhook_url"], cfg["report_base_url"], issue_number,
+                    build_confirmed=build_confirmed,
                 )
     except Exception as exc:
         print(f"리포트 생성/배포 실패: {exc}")

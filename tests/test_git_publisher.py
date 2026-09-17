@@ -63,3 +63,16 @@ def test_publish_treats_nothing_to_commit_as_success_and_still_pushes():
 
     assert result is True
     assert ["git", "push"] in calls
+
+
+def test_get_head_sha_returns_stripped_commit_hash():
+    mock_result = MagicMock()
+    mock_result.stdout = "abc123def\n"
+    mock_run = MagicMock(return_value=mock_result)
+
+    result = git_publisher.get_head_sha(run=mock_run)
+
+    assert result == "abc123def"
+    mock_run.assert_called_once_with(
+        ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+    )
