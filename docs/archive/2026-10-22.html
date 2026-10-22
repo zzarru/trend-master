@@ -1,0 +1,458 @@
+<title>트렌드위클리</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Serif+KR:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --paper: #f2f0e9;
+    --ink: #1d1b17;
+    --ink-soft: #4a463f;
+    --ink-faint: #8a8477;
+    --rule: #cfc9ba;
+    --rule-strong: #1d1b17;
+    --accent: #8c2f27;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #17181a;
+      --ink: #eeece4;
+      --ink-soft: #bcb7a9;
+      --ink-faint: #726d61;
+      --rule: #3a3a37;
+      --rule-strong: #eeece4;
+      --accent: #d9695c;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #17181a;
+    --ink: #eeece4;
+    --ink-soft: #bcb7a9;
+    --ink-faint: #726d61;
+    --rule: #3a3a37;
+    --rule-strong: #eeece4;
+    --accent: #d9695c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Noto Serif KR", Georgia, serif;
+    margin: 0;
+    padding-inline: 20px;
+    padding-block: 36px 64px;
+  }
+
+  .sheet { max-width: 640px; margin-inline: auto; }
+
+  .masthead { text-align: center; padding-bottom: 18px; }
+
+  .masthead .eyebrow {
+    font-family: "Noto Sans KR", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: var(--accent);
+  }
+
+  .masthead h1 {
+    font-family: "Nanum Myeongjo", "Noto Serif KR", serif;
+    font-weight: 800;
+    font-size: clamp(40px, 11vw, 58px);
+    letter-spacing: 0.01em;
+    margin: 0 0 10px;
+    text-wrap: balance;
+  }
+
+  .masthead .dateline {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: "Noto Sans KR", sans-serif;
+    font-size: 12px;
+    color: var(--ink-soft);
+    border-top: 1px solid var(--rule-strong);
+    border-bottom: 3px solid var(--rule-strong);
+    padding: 7px 2px;
+  }
+
+  .masthead .dateline .tag { color: var(--ink-faint); }
+
+  .masthead .subhead {
+    font-family: "Noto Sans KR", sans-serif;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    margin-top: 10px;
+    line-height: 1.6;
+  }
+
+  .masthead .archive-link {
+    display: inline-block;
+    margin-top: 6px;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 2px;
+    margin-top: 22px;
+    border-bottom: 2px solid var(--rule-strong);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab {
+    flex: 0 0 auto;
+    appearance: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: "Noto Sans KR", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--ink-faint);
+    padding: 10px 13px 11px;
+    position: relative;
+    white-space: nowrap;
+  }
+
+  .tab .n {
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-faint);
+    font-weight: 500;
+    margin-left: 3px;
+  }
+
+  .tab[aria-selected="true"] { color: var(--ink); }
+
+  .tab[aria-selected="true"]::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: -2px;
+    height: 3px;
+    background: var(--accent);
+  }
+
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  section.category { margin-top: 30px; }
+  section.category[hidden] { display: none; }
+
+  .cat-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 2px solid var(--rule-strong);
+    padding-bottom: 6px;
+  }
+
+  .cat-head h2 {
+    font-family: "Nanum Myeongjo", serif;
+    font-weight: 700;
+    font-size: 22px;
+    margin: 0;
+    letter-spacing: 0.02em;
+  }
+
+  .cat-head .count {
+    font-family: "Noto Sans KR", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+
+  .empty-note {
+    font-family: "Noto Serif KR", serif;
+    font-style: italic;
+    color: var(--ink-faint);
+    font-size: 14px;
+    padding: 16px 0 4px;
+  }
+
+  ol.items { list-style: none; margin: 0; padding: 0; }
+
+  ol.items li {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 4px 14px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  ol.items li:last-child { border-bottom: none; }
+
+  .rank {
+    font-family: "Nanum Myeongjo", serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: var(--accent);
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .item-body { min-width: 0; }
+
+  .item-title {
+    display: block;
+    font-family: "Noto Serif KR", serif;
+    font-weight: 600;
+    font-size: 16.5px;
+    line-height: 1.42;
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .item-title:hover { color: var(--accent); }
+
+  .item-meta {
+    font-family: "Noto Sans KR", sans-serif;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .item-summary {
+    font-family: "Noto Serif KR", serif;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin-top: 7px;
+    max-width: 62ch;
+  }
+
+  footer {
+    margin-top: 46px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+    font-family: "Noto Sans KR", sans-serif;
+    font-size: 11px;
+    color: var(--ink-faint);
+    text-align: center;
+    line-height: 1.8;
+  }
+
+  footer a { color: var(--ink-soft); }
+
+  @media (max-width: 420px) {
+    .masthead h1 { font-size: 38px; }
+    .item-title { font-size: 15.5px; }
+    ol.items li { grid-template-columns: 24px 1fr; }
+    .rank { font-size: 18px; }
+  }
+</style>
+
+<div class="sheet">
+  <header class="masthead">
+    <div class="eyebrow">34호</div>
+    <h1>트렌드위클리</h1>
+    <div class="dateline">
+      <span>2026. 10. 15 – 10. 22</span>
+      <span class="tag">유튜브 인기 급상승 · KR</span>
+    </div>
+    <p class="subhead">
+      이번 주 한국 유튜브 인기 급상승 영상을 탭으로 살펴보세요 —
+      전체 조회수 TOP 10과, 마케팅 관점 8개 카테고리별 TOP 5.
+      <a class="archive-link" href="../">← 최신 호로 돌아가기</a>
+    </p>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="카테고리">
+    <button class="tab" role="tab" type="button" data-target="top-overall" aria-selected="true">전체<span class="n">10</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-ent" aria-selected="false">엔터테인먼트<span class="n">0</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-music" aria-selected="false">음악<span class="n">0</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-beauty" aria-selected="false">뷰티/패션<span class="n">0</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-life" aria-selected="false">라이프스타일<span class="n">0</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-game" aria-selected="false">게임<span class="n">0</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-ai" aria-selected="false">AI/IT<span class="n">0</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-sports" aria-selected="false">스포츠<span class="n">0</span></button>
+    <button class="tab" role="tab" type="button" data-target="cat-etc" aria-selected="false">기타<span class="n">0</span></button>
+  </nav>
+
+  <section class="category" id="top-overall">
+    <div class="cat-head">
+      <h2>전체 TOP 10</h2>
+      <span class="count">TOP 10 · 10건</span>
+    </div>
+    <ol class="items">
+      <li>
+        <span class="rank">01</span>
+        <div class="item-body">
+          <a class="item-title" href="https://www.youtube.com/watch?v=Mmw-PpWhKFg">K/DA - FIRESTARTER ft. MIYEON and SOYEON of i-dle, Sophie Powers, Mimi Webb (Official Music Video)</a>
+          <div class="item-meta">조회수 17,135,767회 · </div>
+          <p class="item-summary"></p>
+        </div>
+      </li>
+      <li>
+        <span class="rank">02</span>
+        <div class="item-body">
+          <a class="item-title" href="https://www.youtube.com/watch?v=roHWN9fL2SM">NMIXX(엔믹스) “긴 소원(Birthday Wish)” M/V</a>
+          <div class="item-meta">조회수 12,867,102회 · </div>
+          <p class="item-summary"></p>
+        </div>
+      </li>
+      <li>
+        <span class="rank">03</span>
+        <div class="item-body">
+          <a class="item-title" href="https://www.youtube.com/watch?v=rsNhWkC4neE">IVE 아이브 &#x27;Looks Can Kill&#x27; MV</a>
+          <div class="item-meta">조회수 11,293,616회 · </div>
+          <p class="item-summary"></p>
+        </div>
+      </li>
+      <li>
+        <span class="rank">04</span>
+        <div class="item-body">
+          <a class="item-title" href="https://www.youtube.com/watch?v=hdwGWGSfABA">정한X조슈아 (SEVENTEEN) &#x27;12 o&#x27;clock&#x27; Official MV</a>
+          <div class="item-meta">조회수 8,354,959회 · </div>
+          <p class="item-summary"></p>
+        </div>
+      </li>
+      <li>
+        <span class="rank">05</span>
+        <div class="item-body">
+          <a class="item-title" href="https://www.youtube.com/watch?v=Q5fbMWlfatI">ILLIT (아일릿) &#x27;체포하겠어 (You’re Under Arrest)&#x27; | MULTI-CAM | PRESS START♥︎ ENCORE</a>
+          <div class="item-meta">조회수 1,594,936회 · </div>
+          <p class="item-summary"></p>
+        </div>
+      </li>
+      <li>
+        <span class="rank">06</span>
+        <div class="item-body">
+          <a class="item-title" href="https://www.youtube.com/watch?v=Cu6JU-kNmOU">LNGSHOT - &#x27;Masterpiece&#x27; Official Music Video</a>
+          <div class="item-meta">조회수 1,572,410회 · </div>
+          <p class="item-summary"></p>
+        </div>
+      </li>
+      <li>
+        <span class="rank">07</span>
+        <div class="item-body">
+          <a class="item-title" href="https://www.youtube.com/watch?v=miIihGHZ_7A">FIRESTARTER</a>
+          <div class="item-meta">조회수 1,387,726회 · </div>
+          <p class="item-summary"></p>
+        </div>
+      </li>
+      <li>
+        <span class="rank">08</span>
+        <div class="item-body">
+          <a class="item-title" href="https://www.youtube.com/watch?v=bSs1gepe_cY">Crush (크러쉬) - &#x27;삐그덕 (Feat. 아이유)&#x27; MV</a>
+          <div class="item-meta">조회수 1,290,657회 · </div>
+          <p class="item-summary"></p>
+        </div>
+      </li>
+      <li>
+        <span class="rank">09</span>
+        <div class="item-body">
+          <a class="item-title" href="https://www.youtube.com/watch?v=nkHZeOcY-T8">Blunt words... this terrible love</a>
+          <div class="item-meta">조회수 1,017,029회 · </div>
+          <p class="item-summary"></p>
+        </div>
+      </li>
+      <li>
+        <span class="rank">10</span>
+        <div class="item-body">
+          <a class="item-title" href="https://www.youtube.com/watch?v=rlIer64GfA4">If you live well</a>
+          <div class="item-meta">조회수 1,012,766회 · </div>
+          <p class="item-summary"></p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="category" id="cat-ent" hidden>
+    <div class="cat-head">
+      <h2>엔터테인먼트</h2>
+      <span class="count">TOP 5 · 0건</span>
+    </div>
+    <p class="empty-note">이번 주 트렌드 없음</p>
+  </section>
+
+  <section class="category" id="cat-music" hidden>
+    <div class="cat-head">
+      <h2>음악</h2>
+      <span class="count">TOP 5 · 0건</span>
+    </div>
+    <p class="empty-note">이번 주 트렌드 없음</p>
+  </section>
+
+  <section class="category" id="cat-beauty" hidden>
+    <div class="cat-head">
+      <h2>뷰티/패션</h2>
+      <span class="count">TOP 5 · 0건</span>
+    </div>
+    <p class="empty-note">이번 주 트렌드 없음</p>
+  </section>
+
+  <section class="category" id="cat-life" hidden>
+    <div class="cat-head">
+      <h2>라이프스타일</h2>
+      <span class="count">TOP 5 · 0건</span>
+    </div>
+    <p class="empty-note">이번 주 트렌드 없음</p>
+  </section>
+
+  <section class="category" id="cat-game" hidden>
+    <div class="cat-head">
+      <h2>게임</h2>
+      <span class="count">TOP 5 · 0건</span>
+    </div>
+    <p class="empty-note">이번 주 트렌드 없음</p>
+  </section>
+
+  <section class="category" id="cat-ai" hidden>
+    <div class="cat-head">
+      <h2>AI/IT</h2>
+      <span class="count">TOP 5 · 0건</span>
+    </div>
+    <p class="empty-note">이번 주 트렌드 없음</p>
+  </section>
+
+  <section class="category" id="cat-sports" hidden>
+    <div class="cat-head">
+      <h2>스포츠</h2>
+      <span class="count">TOP 5 · 0건</span>
+    </div>
+    <p class="empty-note">이번 주 트렌드 없음</p>
+  </section>
+
+  <section class="category" id="cat-etc" hidden>
+    <div class="cat-head">
+      <h2>기타</h2>
+      <span class="count">TOP 5 · 0건</span>
+    </div>
+    <p class="empty-note">이번 주 트렌드 없음</p>
+  </section>
+
+  <footer>
+    trend-master · run_pipeline.py 자동 발행<br>
+    생성 시각: 2026-10-22T00:17:21+00:00
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll(".tab"));
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        var targetId = tab.getAttribute("data-target");
+        tabs.forEach(function (t) {
+          t.setAttribute("aria-selected", t === tab ? "true" : "false");
+        });
+        document.querySelectorAll("section.category").forEach(function (section) {
+          section.hidden = section.id !== targetId;
+        });
+        tab.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+      });
+    });
+  })();
+</script>
